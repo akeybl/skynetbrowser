@@ -1,0 +1,97 @@
+/* Adjusted styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 50%; /* Adjust this according to your layout needs */
+  height: 100%;
+}
+
+.browser-iframe {
+  width: 100%; /* iframe takes the full width of its grid area */
+  height: 100%; /* Adjust height as needed */
+  border: none;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0); /* transparent overlay */
+  z-index: 10; /* Ensure it's above the iframe */
+}
+
+
+#chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#message-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f0f0f0;
+}
+
+.sent {
+  background-color: #007aff;
+  color: white;
+  align-self: flex-end;
+  max-width: 60%;
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 20px;
+}
+
+.message {
+  max-width: 60%;
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 20px;
+}
+
+.received {
+  background-color: #e5e5ea;
+  color: black;
+  align-self: flex-start;
+}
+
+#message-form {
+  display: flex;
+  background: white;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+}
+
+#message-input {
+  flex-grow: 1;
+  border: none;
+  padding: 10px;
+  margin-right: 10px;
+  border-radius: 20px;
+  outline: none;
+  resize: none; /* Prevents the user from manually resizing the textarea */
+  overflow-y: auto; /* Allows scrolling inside the textarea if the content exceeds its height */
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #007aff;
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+}
