@@ -20,7 +20,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.3.1",
     "@electron-forge/plugin-fuses": "^7.3.1",
     "@electron/fuses": "^1.7.0",
-    "electron": "^29.1.0"
+    "electron": "github:castlabs/electron-releases#v29.0.0+wvcus"
   },
   "keywords": [],
   "author": {
@@ -29,9 +29,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "electron": "^29.1.5",
     "electron-log": "^5.1.2",
     "electron-squirrel-startup": "^1.0.0",
+    "fuse.js": "^7.0.0",
     "ghost-cursor": "^1.2.0",
     "puppeteer": "^22.6.0",
     "puppeteer-extra": "^3.3.6",

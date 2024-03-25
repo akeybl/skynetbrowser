@@ -1,5 +1,3 @@
-const DEV_MODE = true;
-
 // START REQUIRES
 const log = require('electron-log/main');
 
@@ -7,12 +5,15 @@ log.initialize();
 Object.assign(console, log.functions);
 log.errorHandler.startCatching();
 
-// https://github.com/castlabs/electron-releases
+// https://github.com/castlabs/electron-releases for widevine support
 const { app, components, BrowserWindow, session } = require('electron');
+
+// Handle creating/removing shortcuts on Windows when installing/uninstalling.
+if (require('electron-squirrel-startup')) {
+  app.quit();
+}
+
 app.commandLine.appendSwitch('disable-site-isolation-trials');
-// app.commandLine.appendSwitch('widevine-cdm-path', '/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/122.0.6261.129/Libraries/WidevineCdm/_platform_specific/mac_arm64/libwidevinecdm.dylib')
-// // The version of plugin can be got from `chrome://components` page in Chrome.
-// app.commandLine.appendSwitch('widevine-cdm-version', '4.10.2710.0')
 
 const path = require('node:path');
 
@@ -20,8 +21,6 @@ const pie = require('puppeteer-in-electron');
 pie.initialize(app);
 
 const puppeteerVanilla = require('puppeteer-core');
-const device = puppeteerVanilla.KnownDevices['Pixel 5'];
-
 const { addExtra } = require('puppeteer-extra');
 const puppeteer = addExtra(puppeteerVanilla);
 const PortalPlugin = require('puppeteer-extra-plugin-portal');
@@ -38,14 +37,11 @@ puppeteer.use(
   })
 )
 
-const ghostCursor = require("ghost-cursor");
+const { createBrowserPage } = require("./browser-page.js");
+const { keyboardType, clickClosestAriaName, keyboardPress } = require("./page-utilities.js");
+const { delay } = require("./utilities.js");
 
 // END REQUIRES
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) {
-  app.quit();
-}
 
 function createMainWindow() {
   // Create the browser window.
@@ -67,87 +63,40 @@ function createMainWindow() {
   return mainWindow;
 };
 
-function createDeviceSizedWindow(show = true) {
-  return new BrowserWindow({
-    width: device.viewport.width,
-    height: device.viewport.height,
-    resizable: false,
-    show: show,
-    webPreferences: {
-      backgroundThrottling: false,
-      sandbox: true,
-      disableDialogs: true,
-      spellcheck: false,
-      plugins: true,
-    }
-  });
-}
-
-async function createDevice(pie, browser) {
-  const deviceWindow = createDeviceSizedWindow(false);
-
-  deviceWindow.webContents.setWindowOpenHandler(({ url }) => {
-    deviceWindow.loadURL(url);
-
-    return { action: 'deny' };
-  });
-
-  // deviceWindow.webContents.setAudioMuted(true);
-
-  const devicePage = await pie.getPage(browser, deviceWindow);
-
-  const deviceCursor = ghostCursor.createCursor(devicePage);
-
-  if (DEV_MODE) {
-    devicePage.on('framenavigated', async frame => {
-      if (frame === devicePage.mainFrame()) {
-        ghostCursor.installMouseHelper(devicePage);
-      }
-    });
-  }
-
-  await devicePage.emulate(device);
-
-  const deviceClient = await devicePage.target().createCDPSession();
-
-  return {
-    window: deviceWindow,
-    page: devicePage,
-    cursor: deviceCursor,
-    client: deviceClient
-  };
-}
+function clearCookiesAndStorage() {
+  session.defaultSession.clearCache();
+  session.defaultSession.clearStorageData()
+} 
 
 const main = async () => {
-  // await components.whenReady();
+  await components.whenReady();
   console.log('components ready:', components.status());
 
-  // session.defaultSession.clearCache();
-  // session.defaultSession.clearStorageData()
+  // clearCookiesAndStorage();
 
   var browser = await pie.connect(app, puppeteer);
 
-  const deviceObj = await createDevice(pie, browser);
-  await deviceObj.page.goto('https://www.google.com');
-
-  var portalUrl = await deviceObj.page.openPortal();
-  portalUrl = portalUrl.replace("127.0.0.1", "127.0.0.1:3000");
-  console.log('Portal URL:', portalUrl);
-
-  // const portalWindow = createDeviceSizedWindow(true);
-  // portalWindow.loadURL(portalUrl);
+  const bp = await createBrowserPage(pie, browser);
+  var portalUrl = await bp.getPortalURL();
 
   const mainWindow = createMainWindow();
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('load-url', portalUrl);
-    mainWindow.webContents.send('set-overlay', false);
+    mainWindow.webContents.send('set-overlay', true);
   });
+
+  await bp.page.goto('https://www.google.com', { waitUntil: 'networkidle0' });
+  await clickClosestAriaName(bp.client, bp.page, bp.cursor, "Google Search");
+  await keyboardType(bp.page, "reddit");
+  await keyboardPress(bp.page, "Enter");
+  await delay(1000);
+  await clickClosestAriaName(bp.client, bp.page, bp.cursor, "https://www.reddit.com/");
 };
 
 app.on('ready', main);
 
 app.on('window-all-closed', () => {
-  // if (process.platform !== 'darwin') {
-  app.quit();
-  // }
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
