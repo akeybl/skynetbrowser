@@ -1,4 +1,3 @@
-// puppeteer-extra-plugin-user-preferences
 // puppeteer-extra-plugin-devtools
 // https://www.npmjs.com/package/pouchdb
 
@@ -28,6 +27,7 @@ const puppeteerVanilla = require('puppeteer-core');
 const { addExtra } = require('puppeteer-extra');
 const puppeteer = addExtra(puppeteerVanilla);
 const PortalPlugin = require('puppeteer-extra-plugin-portal');
+// May want to use puppeteer-extra-plugin-user-preferences in the future
 
 puppeteer.use(
   PortalPlugin({
@@ -47,7 +47,7 @@ const { createBrowserPage } = require("./browser-page.js");
 const { keyboardType, clickClosestAriaName, keyboardPress } = require("./page-utilities.js");
 const { delay } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
-const { UserMessage, AIMessage, AppMessage, SystemPrompt, USER_ROLE, SYSTEM_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
+const { UserMessage, AIMessage, AppMessage, SystemPrompt, USER_ROLE, SYSTEM_ROLE, ASSISTANT_ROLE, REQUEST_USER_CLARIFICATION } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
 
@@ -122,10 +122,18 @@ const main = async () => {
 
     try {
       const result = await request.getOpenAIResult();
+      console.log(`Got AI response: ${result.fullMessage}`);
 
       messageChain.push(result);
       // Assuming result is an AIMessage or similar, directly send it to the renderer
-      mainWindow.webContents.send('receive-message', { html: marked.parse(result.chatMessage), type: 'received' });
+
+      if (result.chatMessage.trim().length > 0) {
+        mainWindow.webContents.send('receive-message', { html: marked.parse(result.chatMessage), type: 'received' });
+      }
+
+      if (result.actions.length > 0 && result.actions[0].action != REQUEST_USER_CLARIFICATION) {
+        mainWindow.webContents.send('receive-message', { html: `${result.actions[0].action}: ${result.actions[0].actionText}`, type: 'info' });
+      }
     } catch (error) {
       console.error('Failed to get AI response:', error);
       // Handle errors, maybe notify the user
@@ -142,7 +150,13 @@ const main = async () => {
         mainWindow.webContents.send('receive-message', { html: marked.parse(message.chatMessage), type: 'sent' });
       }
       else if (message.role == ASSISTANT_ROLE) {
-        mainWindow.webContents.send('receive-message', { html: marked.parse(message.chatMessage), type: 'received' });
+        if (message.chatMessage.trim().length > 0) {
+          mainWindow.webContents.send('receive-message', { html: marked.parse(message.chatMessage), type: 'received' });
+        }
+
+        if (message.actions.length > 0 && message.actions[0].action != REQUEST_USER_CLARIFICATION) {
+          mainWindow.webContents.send('receive-message', { html: `${actions[0].action}: ${actions[0].actionText}`, type: 'info' });
+        }
       }
     });
   });

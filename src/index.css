@@ -55,17 +55,22 @@ body {
   background-color: #007aff;
   color: white;
   align-self: flex-end;
-  max-width: 60%;
-  margin-bottom: 12px;
+  max-width: 80%;
+  /* margin-bottom: 12px; */
   padding: 10px;
   border-radius: 20px;
 }
 
 .message {
-  max-width: 60%;
+  max-width: 80%;
   margin-bottom: 12px;
   padding: 10px;
   border-radius: 20px;
+}
+
+.message a {
+  word-break: break-all; /* Breaks the text at any point to ensure it fits within its container */
+  overflow-wrap: break-word; /* Allows unbreakable words to be broken */
 }
 
 .received {
@@ -104,18 +109,32 @@ button {
 }
 
 /* Add space between paragraphs */
-p {
+.message p {
   margin-top: 0;
   margin-bottom: 20px;
   /* Adjust this value to control the space between paragraphs */
 }
 
 /* Remove space before the first paragraph */
-p:first-child {
+.message p:first-child {
   margin-top: 0;
 }
 
 /* Remove space after the last paragraph */
-p:last-child {
+.message p:last-child {
   margin-bottom: 0;
+}
+
+/* System or Info Message Style */
+.info {
+  align-self: center;
+  /* Ensures the message is centered horizontally */
+  color: #666;
+  /* A lighter text color for subtlety */
+  font-size: 12px;
+  /* Smaller text size */
+  max-width: 100%;
+  /* Allows the message to span the full width if necessary */
+  text-align: center;
+  /* Centers the text within the message */
 }

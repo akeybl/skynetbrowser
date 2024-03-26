@@ -5,29 +5,43 @@ const SYSTEM_ROLE = 'system';
 const USER_ROLE = 'user';
 const ASSISTANT_ROLE = 'assistant';
 
+const GOTO_URL = "goto_url";
+const GO_BACK = "go_back";
+const GO_FORWARD = "go_forward";
+const RELOAD = "reload";
+const CLICK_ON = "click_on";
+const SCROLL_UP = "scroll_up";
+const SCROLL_DOWN = "scroll_down";
+const SLEEP = "sleep";
+const SLEEP_UNTIL = "sleep_until";
+const REQUEST_USER_INTERVENTION = "request_user_intervention";
+const COMPLETED = "completed";
+const TYPE_IN = "type_in";
+const REQUEST_USER_CLARIFICATION = "request_user_clarification";
+
 class Message {
-    constructor(role, messageStr, date = null) {
+    constructor(role, fullMessage, date = null) {
         this.role = role;
-        this.messageStr = messageStr;
+        this.fullMessage = fullMessage;
         this.date = date || new Date();
-        this.chatMessage = messageStr;
+        this.chatMessage = fullMessage;
     }
 
-    getMinifiedMessageStr() {
-        return this.messageStr;
+    getMinifiedFullMessage() {
+        return this.fullMessage;
     }
 
     getMessageForAI(minify = false) {
         if ( minify ) {
             return {
                 role: this.role,
-                content: this.getMinifiedMessageStr()
+                content: this.getMinifiedFullMessage()
             }
         }
         else {
             return {
                 role: this.role,
-                content: this.messageStr
+                content: this.fullMessage
             }
         }
     }
@@ -45,10 +59,10 @@ class AIMessage extends Message {
     }
 
     parseActionsAndMessage() {        
-        const singleLineActions = [ "goto_url", "go_back", "go_forward", "reload", "click_on", "scroll_up", "scroll_down", "sleep", "sleep_until", "request_user_intervention", "completed" ];
-        const multiLineActions = [ "type_in" ];
+        const singleLineActions = [ GOTO_URL, GO_BACK, GO_FORWARD, RELOAD, CLICK_ON, SCROLL_UP, SCROLL_DOWN, SLEEP, SLEEP_UNTIL, REQUEST_USER_INTERVENTION, COMPLETED ];
+        const multiLineActions = [ TYPE_IN ];
 
-        const lines = this.messageStr.split("\n");
+                const lines = this.fullMessage.split("\n");
         let actions = [];
         let messages = [];
     
@@ -56,7 +70,9 @@ class AIMessage extends Message {
             const line = lines[i];
             const parts = line.split(": ", 2);
             if (parts.length === 2) {
-                const [action, actionText] = parts;
+                const action = parts[0].replace(/^\*+|\*+$/g, '');
+                const actionText = parts[1];
+
                 if (singleLineActions.includes(action)) {
                     actions.push({ action, actionText });
                     continue; // Skip to the next iteration of the loop
@@ -72,12 +88,12 @@ class AIMessage extends Message {
         }
 
         if (messages.length > 0 && messages[messages.length - 1].includes("?")) {
-            actions.push({ action: "request_user_clarification", actionText: messages[messages.length - 1] });
+            actions.push({ action: REQUEST_USER_CLARIFICATION, actionText: messages[messages.length - 1] });
             // messages.pop();
         }
         
         this.actions = actions;
-        this.chatMessage = messages.join("\n").trim();
+        this.chatMessage = messages.join("\n").trim().replace(/\*/g, '');
     }
 }
 
@@ -89,17 +105,17 @@ class YAMLMessage extends Message {
 }
 
 class UserMessage extends YAMLMessage {
-    constructor(userMessageStr, date = null) {
+    constructor(userfullMessage, date = null) {
         const sentAtDate = date || new Date();
 
         const yamlParams = {
             "Sent At": formatDate(sentAtDate),
-            "User Message": userMessageStr
+            "User Message": userfullMessage
         };
 
         super(USER_ROLE, yamlParams, sentAtDate);
 
-        this.chatMessage = userMessageStr;
+        this.chatMessage = userfullMessage;
     }
 }
 
@@ -112,7 +128,7 @@ class AppMessage extends YAMLMessage {
         super(USER_ROLE, yamlParams, date);
     }
 
-    getMinifiedMessageStr() {
+    getMinifiedFullMessage() {
         const parsedOut = ["Page Text"];
 
         var minifiedParams = yamlParams;
@@ -198,8 +214,8 @@ class SystemPrompt extends SystemMessage {
 
         super(yamlParams, initialDate);
 
-        this.chatmessage = "";
+        this.chatMessage = "";
     }
 }
 
-module.exports = { UserMessage, AIMessage, AppMessage, SystemPrompt, SYSTEM_ROLE, USER_ROLE, ASSISTANT_ROLE };
+module.exports = { UserMessage, AIMessage, AppMessage, SystemPrompt, SYSTEM_ROLE, USER_ROLE, ASSISTANT_ROLE, REQUEST_USER_CLARIFICATION };
