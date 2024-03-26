@@ -10,7 +10,7 @@ Object.assign(console, log.functions);
 log.errorHandler.startCatching();
 
 // https://github.com/castlabs/electron-releases for widevine support
-const { app, components, BrowserWindow, session, ipcMain } = require('electron');
+const { app, components, BrowserWindow, session, ipcMain, shell } = require('electron');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -67,6 +67,11 @@ function createMainWindow() {
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
+  mainWindow.webContents.on('will-navigate', function (e, url) {
+    e.preventDefault();
+    shell.openExternal(url);
+  });
+
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
 
@@ -77,7 +82,7 @@ function clearCookiesAndStorage() {
   session.defaultSession.clearCache();
   session.defaultSession.clearStorageData();
   clearSessions();
-} 
+}
 
 const main = async () => {
   await components.whenReady();
@@ -96,7 +101,7 @@ const main = async () => {
     mainWindow.webContents.send('set-overlay', true);
   });
 
-  var messageChain = [ new SystemPrompt("Alex", "Virginia") ];
+  var messageChain = [new SystemPrompt("Alex", "Virginia")];
   var currentAIRequest = null;
 
   ipcMain.on('send-message', async (event, userMessage) => {
@@ -110,11 +115,11 @@ const main = async () => {
 
     // Add the user message to the message chain
     messageChain.push(new UserMessage(userMessage.text));
-      
+
     // Create and start a new AIRequest
     const request = new AIRequest(messageChain);
     currentAIRequest = request; // Keep a reference to the current request
-    
+
     try {
       const result = await request.getOpenAIResult();
 
