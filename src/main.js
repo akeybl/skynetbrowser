@@ -49,6 +49,7 @@ const { delay } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
 const { UserMessage, AIMessage, AppMessage, SystemPrompt, USER_ROLE, SYSTEM_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
+const marked = require('marked');
 
 // END REQUIRES
 
@@ -99,13 +100,13 @@ const main = async () => {
   var currentAIRequest = null;
 
   ipcMain.on('send-message', async (event, userMessage) => {
-    console.log(`Got user message: ${userMessage}`);
+    console.log(`Got user message: ${userMessage.text}`);
 
     if (currentAIRequest) {
       currentAIRequest.cancelRequest();
     }
 
-    mainWindow.webContents.send('receive-message', { text: userMessage.text, type: 'sent' });
+    mainWindow.webContents.send('receive-message', { html: marked.parse(userMessage.text), type: 'sent' });
 
     // Add the user message to the message chain
     messageChain.push(new UserMessage(userMessage.text));
@@ -119,21 +120,24 @@ const main = async () => {
 
       messageChain.push(result);
       // Assuming result is an AIMessage or similar, directly send it to the renderer
-      mainWindow.webContents.send('receive-message', { text: result.chatMessage, type: 'received' });
-      currentAIRequest = null;
+      mainWindow.webContents.send('receive-message', { html: marked.parse(result.chatMessage), type: 'received' });
     } catch (error) {
       console.error('Failed to get AI response:', error);
       // Handle errors, maybe notify the user
+    }
+
+    if (currentAIRequest == request) {
+      currentAIRequest = null;
     }
   });
 
   ipcMain.on('reset-messages', async (event, userMessage) => {
     messageChain.forEach(message => {
       if (message.role == USER_ROLE) {
-        mainWindow.webContents.send('receive-message', { text: message.chatMessage, type: 'sent' });
+        mainWindow.webContents.send('receive-message', { html: marked.parse(message.chatMessage), type: 'sent' });
       }
       else if (message.role == ASSISTANT_ROLE) {
-        mainWindow.webContents.send('receive-message', { text: message.chatMessage, type: 'received' });
+        mainWindow.webContents.send('receive-message', { html: marked.parse(message.chatMessage), type: 'received' });
       }
     });
   });

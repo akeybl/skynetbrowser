@@ -1,5 +1,6 @@
 /* Adjusted styles */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -10,13 +11,16 @@ html, body {
 
 .grid-container {
   display: grid;
-  grid-template-columns: 1fr 50%; /* Adjust this according to your layout needs */
+  grid-template-columns: 1fr 50%;
+  /* Adjust this according to your layout needs */
   height: 100%;
 }
 
 .browser-iframe {
-  width: 100%; /* iframe takes the full width of its grid area */
-  height: 100%; /* Adjust height as needed */
+  width: 100%;
+  /* iframe takes the full width of its grid area */
+  height: 100%;
+  /* Adjust height as needed */
   border: none;
 }
 
@@ -26,10 +30,11 @@ html, body {
   left: 50%;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0); /* transparent overlay */
-  z-index: 10; /* Ensure it's above the iframe */
+  background: rgba(0, 0, 0, 0);
+  /* transparent overlay */
+  z-index: 10;
+  /* Ensure it's above the iframe */
 }
-
 
 #chat-container {
   display: flex;
@@ -83,8 +88,10 @@ html, body {
   margin-right: 10px;
   border-radius: 20px;
   outline: none;
-  resize: none; /* Prevents the user from manually resizing the textarea */
-  overflow-y: auto; /* Allows scrolling inside the textarea if the content exceeds its height */
+  resize: none;
+  /* Prevents the user from manually resizing the textarea */
+  overflow-y: auto;
+  /* Allows scrolling inside the textarea if the content exceeds its height */
 }
 
 button {
@@ -94,4 +101,21 @@ button {
   color: white;
   border-radius: 20px;
   cursor: pointer;
+}
+
+/* Add space between paragraphs */
+p {
+  margin-top: 0;
+  margin-bottom: 20px;
+  /* Adjust this value to control the space between paragraphs */
+}
+
+/* Remove space before the first paragraph */
+p:first-child {
+  margin-top: 0;
+}
+
+/* Remove space after the last paragraph */
+p:last-child {
+  margin-bottom: 0;
 }

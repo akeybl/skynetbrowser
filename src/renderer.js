@@ -32,7 +32,8 @@ function displayMessages() {
     messages.forEach(message => {
         const messageElement = document.createElement('div');
         messageElement.classList.add('message', message.type);
-        messageElement.textContent = message.text;
+        // Use the exposed `markdown.render` function
+        messageElement.innerHTML = message.html;
         messageContainer.appendChild(messageElement);
     });
     messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
