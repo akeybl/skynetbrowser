@@ -39,7 +39,7 @@ class AIRequest {
         return minifiedChain;
     }
 
-    async getOpenAIResult() {
+    async getOpenAIResult(browserPage) {
         // try {
             // Modify the call to include signal for aborting the request
             const response = await client.chat.completions.create({
@@ -49,7 +49,7 @@ class AIRequest {
             },
             { signal: this.controller.signal });
             
-            return new AIMessage(response);
+            return new AIMessage(response, browserPage);
         // } catch (error) {
         //     if (error.name === 'AbortError') {
         //         console.log('Request was cancelled');

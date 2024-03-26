@@ -155,12 +155,12 @@ async function clickClosestAriaName(client, page, cursor, label) {
     // Search for the closest key
     const result = fuse.search(label);
     
-    if (result.length > 0) {
+    if (result.length > 0 && result[0].score < .1) {
         console.log('Closest match:', result[0].item.key, 'with score:', result[0].score);
         const element = nameToElementsMap[result[0].item.key][0];
         await clickElement(page, cursor, element);
     } else {
-        throw new Error("No match found for ${label}")
+        throw new Error("No match found for ${label}");
     }
     // XXX: NEED TO FINISH
 }

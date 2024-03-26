@@ -4,6 +4,15 @@ const isMac = os.platform() === "darwin";
 const isWindows = os.platform() === "win32";
 const isLinux = os.platform() === "linux";
 
+function isValidUrl(url) {
+    try {
+        new URL(url);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
 function delay(time) {
     return new Promise(function (resolve) {
         setTimeout(resolve, time)
@@ -40,4 +49,4 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt };
+module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl };

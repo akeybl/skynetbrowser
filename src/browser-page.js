@@ -3,6 +3,7 @@ const puppeteerVanilla = require('puppeteer-core');
 const ghostCursor = require("ghost-cursor");
 const { DEV_MODE } = require("./globals.js");
 const { storeSessionStr, getSessionStr } = require("./data-store.js");
+const { getAriaElementsText, clickClosestAriaName, keyboardType, keyboardPress } = require('./page-utilities.js');
 
 class HistoryEntry {
     constructor(url, inPage=false) {
@@ -96,6 +97,22 @@ class BrowserPage {
         else {
             console.log(`No session data found.`);
         }
+    }
+
+    async getPageText() {
+        return await getAriaElementsText(this.client, this.page);
+    }
+
+    async clickClosestText(text) {
+        return await clickClosestAriaName(this.client, this.page, this.cursor, text);
+    }
+
+    async keyboardType(text) {
+        return await keyboardType(this.page, text);
+    }
+
+    async keyboardPress(key) {
+        return await keyboardPress(this.page, key);
     }
 }
 
