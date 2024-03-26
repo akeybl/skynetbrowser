@@ -15,10 +15,10 @@ class HistoryEntry {
 }
 
 class BrowserPage {
-    constructor(pie, browser, pageName, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
+    constructor(pie, browser, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
         this.pie = pie;
         this.browser = browser;
-        this.pageName = pageName;
+        this.pageID = pageID;
         this.partitioned = partitioned;
         this.device = puppeteerVanilla.KnownDevices[device];
         
@@ -29,7 +29,7 @@ class BrowserPage {
 
         var partition = "";
         if (partitioned) {
-            partition = `persist:${pageName}`;
+            partition = `persist:${pageID}`;
         }
 
         this.window = new BrowserWindow({
@@ -79,24 +79,32 @@ class BrowserPage {
     }
 
     async storeSession() {
-        console.log(`Storing session for page ${this.pageName}.`);
+        console.log(`Storing session for page ${this.pageID}.`);
 
         const sessionDataStr = await this.page.session.dumpString();
-        storeSessionStr(this.pageName, sessionDataStr);
+        storeSessionStr(this.pageID, sessionDataStr);
     }
 
     async restoreSession() {
-        console.log(`Restoring session for page ${this.pageName}.`);
+        const sessionDataStr = getSessionStr(this.pageID);
 
-        const sessionDataStr = getSessionStr(this.pageName);
-        this.page.session.restoreString(sessionDataStr);
+        if (sessionDataStr != null) {
+            console.log(`Restoring session for page ${this.pageID}.`);
+
+            this.page.session.restoreString(sessionDataStr);
+        }
+        else {
+            console.log(`No session data found.`);
+        }
     }
 }
 
-async function createBrowserPage(pie, browser, pageName, partitioned = false, device = 'Pixel 5', show = false, muted=true) {
-    const bp = new BrowserPage(pie, browser, pageName, partitioned, device, show, muted);
+async function createBrowserPage(pie, browser, pageID, partitioned = false, device = 'Pixel 5', show = false, muted=true) {
+    const bp = new BrowserPage(pie, browser, pageID, partitioned, device, show, muted);
     
     bp.page = await pie.getPage(browser, bp.window);
+    await bp.restoreSession();
+
     bp.cursor = ghostCursor.createCursor(bp.page);
 
     if (DEV_MODE) {
