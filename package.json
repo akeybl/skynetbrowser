@@ -31,10 +31,12 @@
   "dependencies": {
     "electron-log": "^5.1.2",
     "electron-squirrel-startup": "^1.0.0",
+    "electron-store": "^8.2.0",
     "fuse.js": "^7.0.0",
     "ghost-cursor": "^1.2.0",
     "puppeteer": "^22.6.0",
     "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-session": "^1.0.1",
     "puppeteer-in-electron": "^3.0.5"
   }
 }

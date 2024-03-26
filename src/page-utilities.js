@@ -93,8 +93,8 @@ async function queryAXTree(
     return filteredNodes;
 }
 
-async function getAriaElement(client, page, cursor, label, role = null) {
-    const axNodes = await queryAXTree(client, label); //, role);
+async function getAriaElement(client, page, cursor, label) {
+    const axNodes = await queryAXTree(client, label);
 
     // console.log(axNodes);
 
@@ -139,7 +139,7 @@ async function mapNameToElements(node) { //, visibleOnly = false) {
     return map;
   }  
 
-async function clickClosestAriaName(client, page, cursor, label, role = null) {
+async function clickClosestAriaName(client, page, cursor, label) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
     var nameToElementsMap = await mapNameToElements(nodeTree);
@@ -165,8 +165,8 @@ async function clickClosestAriaName(client, page, cursor, label, role = null) {
     // XXX: NEED TO FINISH
 }
 
-async function clickExactAriaName(client, page, cursor, label, role = null) {
-    const ariaElement = await getAriaElement(client, page, cursor, label, role);
+async function clickExactAriaName(client, page, cursor, label) {
+    const ariaElement = await getAriaElement(client, page, cursor, label);
 
     if (ariaElement) {
         await clickElement(page, cursor, ariaElement);
@@ -213,7 +213,7 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
     }
 
     if (nodeId == rootNodeId) {
-        console.log(`Processing frameId:${nodeClone.frameId}`);
+        console.log(`Processing frameId: ${nodeClone.frameId}`);
     }
 
     for (let childId of nodeClone.childIds) {

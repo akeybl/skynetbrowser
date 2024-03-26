@@ -2,6 +2,7 @@ const { BrowserWindow } = require('electron');
 const puppeteerVanilla = require('puppeteer-core');
 const ghostCursor = require("ghost-cursor");
 const { DEV_MODE } = require("./globals.js");
+const { storeSessionStr, getSessionStr } = require("./data-store.js");
 
 class HistoryEntry {
     constructor(url, inPage=false) {
@@ -14,15 +15,22 @@ class HistoryEntry {
 }
 
 class BrowserPage {
-    constructor(pie, browser, device = 'Pixel 5', show = false, muted = true) {
+    constructor(pie, browser, pageName, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
         this.pie = pie;
         this.browser = browser;
+        this.pageName = pageName;
+        this.partitioned = partitioned;
         this.device = puppeteerVanilla.KnownDevices[device];
         
         this.page = null;
         this.cursor = null;
         this.client = null;
         this.history = [];
+
+        var partition = "";
+        if (partitioned) {
+            partition = `persist:${pageName}`;
+        }
 
         this.window = new BrowserWindow({
             width: this.device.viewport.width,
@@ -35,6 +43,7 @@ class BrowserPage {
                 disableDialogs: true,
                 spellcheck: false,
                 plugins: true,
+                partition: partition,
             }
         });
 
@@ -68,10 +77,24 @@ class BrowserPage {
 
         return this.portalUrl;
     }
+
+    async storeSession() {
+        console.log(`Storing session for page ${this.pageName}.`);
+
+        const sessionDataStr = await this.page.session.dumpString();
+        storeSessionStr(this.pageName, sessionDataStr);
+    }
+
+    async restoreSession() {
+        console.log(`Restoring session for page ${this.pageName}.`);
+
+        const sessionDataStr = getSessionStr(this.pageName);
+        this.page.session.restoreString(sessionDataStr);
+    }
 }
 
-async function createBrowserPage(pie, browser, device = 'Pixel 5', show = false, muted=true) {
-    const bp = new BrowserPage(pie, browser, device, show, muted);
+async function createBrowserPage(pie, browser, pageName, partitioned = false, device = 'Pixel 5', show = false, muted=true) {
+    const bp = new BrowserPage(pie, browser, pageName, partitioned, device, show, muted);
     
     bp.page = await pie.getPage(browser, bp.window);
     bp.cursor = ghostCursor.createCursor(bp.page);

@@ -1,3 +1,8 @@
+// https://github.com/clouedoc/puppeteer-extra-plugin-session
+// puppeteer-extra-plugin-user-preferences
+// puppeteer-extra-plugin-devtools
+// https://www.npmjs.com/package/pouchdb
+
 // START REQUIRES
 const log = require('electron-log/main');
 
@@ -37,6 +42,8 @@ puppeteer.use(
   })
 )
 
+puppeteer.use(require('puppeteer-extra-plugin-session').default());
+
 const { createBrowserPage } = require("./browser-page.js");
 const { keyboardType, clickClosestAriaName, keyboardPress } = require("./page-utilities.js");
 const { delay } = require("./utilities.js");
@@ -65,7 +72,7 @@ function createMainWindow() {
 
 function clearCookiesAndStorage() {
   session.defaultSession.clearCache();
-  session.defaultSession.clearStorageData()
+  session.defaultSession.clearStorageData();
 } 
 
 const main = async () => {
@@ -76,7 +83,7 @@ const main = async () => {
 
   var browser = await pie.connect(app, puppeteer);
 
-  const bp = await createBrowserPage(pie, browser);
+  const bp = await createBrowserPage(pie, browser, "test", true);
   var portalUrl = await bp.getPortalURL();
 
   const mainWindow = createMainWindow();
@@ -85,12 +92,15 @@ const main = async () => {
     mainWindow.webContents.send('set-overlay', true);
   });
 
+  await bp.restoreSession();
   await bp.page.goto('https://www.google.com', { waitUntil: 'networkidle0' });
+
   await clickClosestAriaName(bp.client, bp.page, bp.cursor, "Google Search");
   await keyboardType(bp.page, "reddit");
   await keyboardPress(bp.page, "Enter");
   await delay(1000);
   await clickClosestAriaName(bp.client, bp.page, bp.cursor, "https://www.reddit.com/");
+  mainWindow.webContents.send('set-overlay', false);
 };
 
 app.on('ready', main);
