@@ -26,10 +26,10 @@ class GotoUrlAction extends Action {
     async execute() {
         console.log(`Going to URL: ${this.actionText}`);
 
-        if (!isValidUrl(this.actionText)) {
-            this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
-            return super.execute();
-        }
+        // if (!isValidUrl(this.actionText)) {
+        //     this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
+        //     return super.execute();
+        // }
 
         try {
             await this.browserPage.page.goto(this.actionText);

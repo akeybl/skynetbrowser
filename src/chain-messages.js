@@ -58,14 +58,18 @@ class AIMessage extends Message {
     
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const parts = line.split(": ", 2);
-            if (parts.length === 2) {
-                const action = parts[0].replace(/\*/g, "");
-                const actionText = parts[1].replace(/\*/g, "");
+
+            const separatorIndex = line.indexOf(": ");
+
+            if (separatorIndex !== -1) {
+                const action = line.substring(0, separatorIndex).replace(/\*/g, "");
+                const actionText = line.substring(separatorIndex + 2).replace(/\*/g, "");
 
                 if (multiLineActions.includes(action)) {
                     // Concatenate the rest of the lines as the actionText for multiLineActions
-                    const multilineText = parts[1] + lines.slice(i + 1).join("\n");
+                    var multilineText = actionText + lines.slice(i + 1).join("\n");
+                    multilineText = multilineText.replace(/\*/g, "");
+
                     actions.push(new (actionClasses[action] || Action)(this.browserPage, action, multilineText));
                     break; // Assuming the rest of the input is the action text
                 }
@@ -78,7 +82,7 @@ class AIMessage extends Message {
             messages.push(line);
         }
 
-        if (messages.length > 0 && messages[messages.length - 1].includes("?")) {
+        if (messages.length > 0 && (messages[messages.length - 1].includes("?"))) { // || messages[messages.length - 1].includes("please") || messages[messages.length - 1].includes("Please"))) {
             this.includesQuestion = true;
             // actions.push({ action: REQUEST_USER_CLARIFICATION, actionText: messages[messages.length - 1] });
             // messages.pop();
@@ -155,7 +159,8 @@ class SystemPrompt extends SystemMessage {
                 "ALWAYS bold text/information/links/lists/summary from markdown that fulfills the user's request or answers their question directly. DO NOT bold other text",
                 "Don't ask for permission or the user's help, just go and do it yourself",
                 "Don't give up! Try a different way of getting to what you need, that doesn't involve the user",
-                "When the user asks for access or control, use request_user_intervention"
+                "When the user asks for access or control, use request_user_intervention",
+                "Before interacting, use click_on to close or accept anything at the top or bottom of the page. It may be a cookie notice, modal, dialog, overlay, offer, etc",
               ],
               "When Navigating": [
                 "Use goto_url to navigate directly to a website, web app, or search engines",
@@ -163,7 +168,6 @@ class SystemPrompt extends SystemMessage {
                 "Use click_on to gain access through, navigate to, or interact with, a link/icon/button/input from the Page Text and get access to its Page Text",
                 "Use scroll_up/scroll_down to get Page Text elsewhere on the page",
                 "DO NOT assume that your directions had your intended effect, check in Page Text",
-                // "Close/accept cookie notices, overlays, sign-in offers as they may interfere with click_on commands",
               ],
               "Page Text Limitations": [
                 "Only the most recent Page Text will be provided as part of the chat history",
@@ -175,7 +179,7 @@ class SystemPrompt extends SystemMessage {
                 "DO NOT ask for permission to navigate to a page or take a requested action - ONLY ask permission when you're about to take an action that costs money"
               ],
               "On Inputting Text": [
-                "You should click_on on the name of the element (found after the element type), and only then perform a type_in function call",
+                "You should click_on on the input/textarea/combobox, and only then perform a type_in function call",
                 "Text boxes with focus will have the ► icon in them, and selected/checked elements will have ☑ in them",
                 "type_in clears the input/textarea before entering text",
                 "When using type_in, the exact text provided will be typed",
@@ -194,8 +198,8 @@ class SystemPrompt extends SystemMessage {
                 "reload: Reason for reload",
                 "go_back: Reason to go back",
                 "go_back: Reason to go forward",
-                "click_on: name of link/button/textbox/etc provided in the Page Text",
-                "type_in: EXACT text to type",
+                "click_on: element type and name from Page Text, for instance button: Search or textbox: Search",
+                "type_in: only EXACT text to type -- do not include input/textbox name here",
                 "request_user_intervention: Reason for assistance - user request, CAPTCHA or authentication",
                 "sleep: number of seconds until next action should occur",
                 "sleep_until: date and time",

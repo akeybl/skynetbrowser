@@ -1,6 +1,8 @@
 const { randomDelay } = require('./utilities.js');
 const Fuse = require('fuse.js');
 
+const interactive = ["link", "button", "combobox", "searchbox", "textbox", "select", "menuitem", "menuitemcheckbox", "menuitemradio", "radio", "checkbox", "option", "slider", "spinbutton", "switch", "tab", "treeitem"];
+
 async function clickElement(page, cursor, element) {
     const intersecting = await element.isIntersectingViewport();
 
@@ -155,7 +157,7 @@ async function clickClosestAriaName(client, page, cursor, label) {
     // Search for the closest key
     const result = fuse.search(label);
     
-    if (result.length > 0 && result[0].score < .1) {
+    if (result.length > 0) {
         console.log('Closest match:', result[0].item.key, 'with score:', result[0].score);
         const element = nameToElementsMap[result[0].item.key][0];
         await clickElement(page, cursor, element);
@@ -270,21 +272,32 @@ async function mapNameToElements(node) {
     function traverse(node) {
         if (!node) return;
 
+        var isInteractive = false;
+
         if(!skippedRoles.includes(node.role.value)) {
-            const nameValue = node.name?.value.trim();
-            if (nameValue && nameValue != "") {
-                if (!map[nameValue]) {
-                    map[nameValue] = [];
+            var key = `${node.role.value}: ${node.name?.value.trim()}`;
+
+            if (node.role && node.role.value && interactive.includes(node.role.value)) {
+                isInteractive = true;
+                const textLines = getFullNodeText(node);
+                key = `${node.role.value}: ${textLines.join(" ").trim()}`;
+            }
+
+            if (key && key != "") {
+                if (!map[key]) {
+                    map[key] = [];
                 }
-                map[nameValue].push(node.element);
+                map[key].push(node.element);
             }
         }
 
-        // If the node has children, traverse them recursively
-        if (node.children && node.children.length > 0) {
-            node.children.forEach(child => {
-                traverse(child);
-            });
+        if (!isInteractive) {
+            // If the node has children, traverse them recursively
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(child => {
+                    traverse(child);
+                });
+            }
         }
     }
 
@@ -299,16 +312,32 @@ async function getAriaElementsText(client, page) {
     return await getTreeText(nodeTree, 0);
 }
 
-async function getTreeText(node, level, inside) {
+function getFullNodeText(node) {
+    var nodeTextArray = [];
+
+    if(node.name && node.name.value) {
+        nodeTextArray.push(node.name.value);
+        // console.log(`XXX: ${node.name.value}`);
+    }
+
+    for (let childNode of node.children) {
+        const childNodeTextArray = getFullNodeText(childNode);
+        nodeTextArray.push(...childNodeTextArray);
+    }
+
+    const uniqueArray = [...new Set(nodeTextArray)];
+    return uniqueArray;
+}
+
+async function getTreeText(node, level) {
     var fullText = "";
 
-    const interactive = ["link", "button", "combobox", "searchbox", "textbox", "select", "menuitem", "menuitemcheckbox", "menuitemradio", "radio", "checkbox", "option", "slider", "spinbutton", "switch", "tab", "treeitem"];
     const editable = ["searchbox", "combobox", "textbox"];
     const checkable = ["checkbox", "menuitemcheckbox", "radio", "switch"];
     const selectable = ["switch", "tab", "treeitem"];
 
     if (!node.ignored && node.role && node.role.value) {
-        if (interactive.includes(node.role.value)) {// && node.element !== null) {
+        if (interactive.includes(node.role.value)) { // && node.element !== null) {
             if (node.element === null || (node.element !== null && node.element.isVisible())) {
                 var focusStr = "";
                 var editableValueStr = "";
@@ -351,23 +380,46 @@ async function getTreeText(node, level, inside) {
                     }
                 }
 
-                var nodeNameValue = "unnamed";
-                if (node.name && node.name.value) {
-                    nodeNameValue = node.name.value;
-                }
+                // var nodeNameValue = "unnamed";
+                // if (node.name && node.name.value) {
+                //     nodeNameValue = node.name.value;
+                // }
 
-                fullText += `{${focusStr}${node.role.value}: ${nodeNameValue}}${editableValueStr}\n`;
+                const textLines = getFullNodeText(node);
+                const nodeNameValue = textLines.join(" ");
+
+                // if (nodeNameValue.trim() != "") {
+                fullText += `${" ".repeat(level+1)}{${focusStr}${node.role.value}: ${nodeNameValue}}${editableValueStr}\n`;
+                // }
+            }
+            else {
+                for (let childNode of node.children) {
+                    fullText += await getTreeText(childNode, level );
+                }    
             }
         }
-        else if (!inside || node.role.value == "image") {
+        else {
             var text = "";
 
             if (node.role.value == "RootWebArea") {
-                text = `% START ${node.name.value}`;
+                text = `# START ${node.name.value}`;
             }
             else if (node.role.value == "image") {
                 // XXX: node.name.value isn't always available (see google.com)
-                text = `<image: ${node.name.value}>`;
+
+                var nodeNameValue = "";
+
+                if (node.name && node.name.value) {
+                    nodeNameValue = node.name.value;
+                }
+                else {
+                    const textLines = getFullNodeText(node);
+                    nodeNameValue = textLines.join(" ");
+                }
+
+                if (nodeNameValue.trim() != "") {
+                    text = `<image: ${nodeNameValue}>`;
+                }
             }
             else if (node.role.value == "heading") {
                 var heading_level = 1;
@@ -386,24 +438,22 @@ async function getTreeText(node, level, inside) {
             }
 
             if (text.trim() != "") {
-                fullText += `${text}\n`;
+                fullText += `${" ".repeat(level+1)}${text}\n`;
+            }
+
+            for (let childNode of node.children) {
+                fullText += await getTreeText(childNode, level + 1);
+            }
+
+            if (node.role.value == "RootWebArea") {
+                fullText += `# END ${node.name.value}\n`;
             }
         }
     }
-
-    for (let childNode of node.children) {
-        if (inside || interactive.includes(node.role.value)) {
-            fullText += await getTreeText(childNode, level + 1, true);
-        }
-        else {
-            fullText += await getTreeText(childNode, level + 1, false);
-        }
-    }
-
-    if (!inside) {
-        if (node.role.value == "RootWebArea") {
-            fullText += `% END ${node.name.value}\n`;
-        }
+    else {
+        for (let childNode of node.children) {
+            fullText += await getTreeText(childNode, level);
+        }    
     }
 
     return fullText;

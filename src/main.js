@@ -96,7 +96,7 @@ async function initializeComponents() {
 
 async function setupBrowserConnection(pageName) {
   const browser = await pie.connect(app, puppeteer);
-  const browserPage = await createBrowserPage(pie, browser, pageName, true);
+  const browserPage = await createBrowserPage(pie, browser, pageName, false, "Pixel 5", false, false);
   return {
     browserPage: browserPage, 
     portalURL: await browserPage.getPortalURL()
