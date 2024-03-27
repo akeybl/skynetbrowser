@@ -1,8 +1,37 @@
 const os = require('os');
+const tiktoken = require("tiktoken");
 
 const isMac = os.platform() === "darwin";
 const isWindows = os.platform() === "win32";
 const isLinux = os.platform() === "linux";
+
+async function ttokTruncate(inputString, tokenStart = 0, tokenEnd = 3000) {
+    // Assuming tiktoken is imported and initialized elsewhere in your code
+    const encoding = tiktoken.encoding_for_model("gpt-4");
+
+    // Tokenize the input string
+    const tokens = encoding.encode(inputString);
+
+    // Early return conditions
+    if (tokens.length < tokenStart || tokenStart > tokenEnd) {
+        return null;
+    }
+
+    // Adjust tokenEnd if it exceeds the number of tokens
+    tokenEnd = tokenEnd > tokens.length ? tokens.length : tokenEnd;
+
+    // Truncate the token array
+    const truncatedTokens = tokens.slice(tokenStart, tokenEnd);
+
+    // Decode the tokens back to a string
+    const decodedString = new TextDecoder().decode(
+        encoding.decode(truncatedTokens),
+    );
+
+    // console.log(decodedString);
+
+    return decodedString;
+}
 
 function isValidUrl(url) {
     try {
@@ -49,4 +78,4 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl };
+module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate };

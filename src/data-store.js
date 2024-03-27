@@ -19,7 +19,7 @@ function storeSessionStr(pageName, sessionStr) {
 function getSessionStr(pageName) {
     var sessions = store.get(SESSIONS_KEY);
 
-    if (sessions !== null && pageName in sessions) {
+    if (sessions != null && pageName in sessions) {
         return sessions[pageName];
     }
     else {

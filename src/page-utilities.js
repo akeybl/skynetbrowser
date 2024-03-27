@@ -40,7 +40,7 @@ async function keyboardType(page, text) {
     console.log(`Typing: ${text}`)
     for (let char of text) {
         // Generating a random delay between 30 and 100 milliseconds
-        await randomDelay(30, 100);
+        await randomDelay(20, 40);
         await page.keyboard.type(char);
     }
 }
@@ -264,7 +264,7 @@ async function getChildFrames(frames, frame) {
 }
 
 async function mapNameToElements(node) {
-    const skippedRoles = ["none", "generic", "StaticText"];
+    const skippedRoles = ["none", "generic"];
     let map = {};
 
     function traverse(node) {

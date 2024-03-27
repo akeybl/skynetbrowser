@@ -1,4 +1,4 @@
-const { delay, isValidUrl } = require("./utilities.js");
+const { randomDelay, isValidUrl, ttokTruncate } = require("./utilities.js");
 
 class Action {
     constructor(browserPage, action, actionText) {
@@ -6,13 +6,17 @@ class Action {
         this.action = action;
         this.actionText = actionText;
         this.returnParams = {};
+        this.blocking = false;
     }
 
     async execute() {
         // throw new Error('Execute method must be implemented by subclasses');
 
         this.returnParams[`Current URL`] = await this.browserPage.page.url();
-        this.returnParams[`Page Text for Current URL`] = await this.browserPage.getPageText();
+        const fullText = await this.browserPage.getPageText();
+        this.returnParams[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 3000);
+
+        console.log(this.returnParams[`Page Text for Current URL`]);
 
         return this.returnParams;
     }
@@ -24,7 +28,7 @@ class GotoUrlAction extends Action {
 
         if (!isValidUrl(this.actionText)) {
             this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
-            return;
+            return super.execute();
         }
 
         try {
@@ -41,7 +45,12 @@ class GoBackAction extends Action {
     async execute() {
         console.log(`Going back in browser history`);
 
-        this.browserPage.page.goBack();
+        await this.browserPage.page.goBack();
+
+        this.returnParams["Outcome"] = `${GO_BACK} operation complete.`;
+
+        await randomDelay(2000, 3000);
+
         return super.execute();
     }
 }
@@ -49,7 +58,13 @@ class GoBackAction extends Action {
 class GoForwardAction extends Action {
     async execute() {
         console.log(`Going forward in browser history`);
-        this.browserPage.page.goForward();
+
+        await this.browserPage.page.goForward();
+
+        this.returnParams["Outcome"] = `${GO_FORWARD} operation complete.`;
+
+        await randomDelay(2000, 3000);
+
         return super.execute();
     }
 }
@@ -57,6 +72,12 @@ class GoForwardAction extends Action {
 class ReloadAction extends Action {
     async execute() {
         console.log(`Reloading the page`);
+
+        await this.browserPage.page.reload();
+
+        this.returnParams["Outcome"] = `${RELOAD} operation complete.`;
+
+        return super.execute();
     }
 }
 
@@ -65,54 +86,97 @@ class ClickOnAction extends Action {
         console.log(`Clicking on: ${this.actionText}`);
 
         try {
-            this.browserPage.clickClosestText(this.actionText);
+            await this.browserPage.clickClosestText(this.actionText);
+            this.returnParams["Outcome"] = `${CLICK_ON} operation complete.`;
         }
         catch {
             console.log("No matching text found.");
             this.returnParams["Error"] = `No text matching ${this.actionText} found.`
         }
+
+        await randomDelay(2000, 3000);
+
+        return super.execute();
     }
 }
 
 class TypeInAction extends Action {
     async execute() {
         console.log(`Typing in: ${this.actionText}`);
+
+        await this.browserPage.typeIn(this.actionText);
+        
+        this.returnParams["Outcome"] = `${TYPE_IN} operation complete.`;
+
+        await randomDelay(2000, 3000);
+
+        return super.execute();
     }
 }
 
 class ScrollUpAction extends Action {
     async execute() {
         console.log(`Scrolling up`);
+        // XXX: Not yet implemented
+        return super.execute();
     }
 }
 
 class ScrollDownAction extends Action {
     async execute() {
         console.log(`Scrolling down`);
+        // XXX: Not yet implemented
+        return super.execute();
     }
 }
 
 class SleepAction extends Action {
+    constructor(browserPage, action, actionText) {
+        super(browserPage, action, actionText);
+        this.blocking = true;
+    }
+
     async execute() {
         console.log(`Sleeping for: ${this.actionText} milliseconds`);
+        // XXX: Not yet implemented
+        return super.execute();
     }
 }
 
 class SleepUntilAction extends Action {
+    constructor(browserPage, action, actionText) {
+        super(browserPage, action, actionText);
+        this.blocking = true;
+    }
+
     async execute() {
         console.log(`Sleeping until: ${this.actionText} (a specific condition is met)`);
+        // XXX: Not yet implemented
+        return super.execute();
     }
 }
 
 class RequestUserInterventionAction extends Action {
+    constructor(browserPage, action, actionText) {
+        super(browserPage, action, actionText);
+        this.blocking = true;
+    }
+    
     async execute() {
         console.log(`Requesting user intervention: ${this.actionText}`);
+        return super.execute();
     }
 }
 
 class CompletedAction extends Action {
+    constructor(browserPage, action, actionText) {
+        super(browserPage, action, actionText);
+        this.blocking = true;
+    }
+
     async execute() {
         console.log(`Action completed`);
+        return super.execute();
     }
 }
 
@@ -134,7 +198,7 @@ const SLEEP_UNTIL = "sleep_until";
 const REQUEST_USER_INTERVENTION = "request_user_intervention";
 const COMPLETED = "completed";
 const TYPE_IN = "type_in";
-const REQUEST_USER_CLARIFICATION = "request_user_clarification";
+// const REQUEST_USER_CLARIFICATION = "request_user_clarification";
 
 const actionClasses = {
     goto_url: GotoUrlAction,
@@ -147,9 +211,10 @@ const actionClasses = {
     scroll_down: ScrollDownAction,
     sleep: SleepAction,
     sleep_until: SleepUntilAction,
-    type_in: RequestUserInterventionAction,
+    type_in: TypeInAction,
     completed: CompletedAction,
+    request_user_intervention: RequestUserInterventionAction
     // request_user_clarification: RequestUserClarificationAction
 };
 
-module.exports = { actionClasses, Action, TYPE_IN}; // , REQUEST_USER_CLARIFICATION };
+module.exports = { actionClasses, Action, REQUEST_USER_INTERVENTION, SLEEP, SLEEP_UNTIL, COMPLETED, TYPE_IN}; // , REQUEST_USER_CLARIFICATION };

@@ -44,13 +44,12 @@ puppeteer.use(
 puppeteer.use(require('puppeteer-extra-plugin-session').default());
 
 const { createBrowserPage } = require("./browser-page.js");
-const { keyboardType, clickClosestAriaName, keyboardPress } = require("./page-utilities.js");
 const { delay } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
 const { UserMessage, AIMessage, AppMessage, SystemPrompt, USER_ROLE, SYSTEM_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
-const { REQUEST_USER_CLARIFICATION } = require("./actions.js");
+const { REQUEST_USER_INTERVENTION } = require("./actions.js");
 
 // END REQUIRES
 
@@ -80,9 +79,13 @@ function createMainWindow() {
   return mainWindow;
 };
 
-function clearCookiesAndStorage() {
-  session.defaultSession.clearCache();
-  session.defaultSession.clearStorageData();
+function clearCookiesAndStorage(pageName) {
+  const partitionSession = session.fromPartition(`persist:${pageName}`);
+
+  partitionSession.clearCache();
+  partitionSession.clearStorageData();
+  partitionSession.flushStorageData();
+
   clearSessions();
 }
 
@@ -91,9 +94,9 @@ async function initializeComponents() {
   console.log('components ready:', components.status());
 }
 
-async function setupBrowserConnection() {
+async function setupBrowserConnection(pageName) {
   const browser = await pie.connect(app, puppeteer);
-  const browserPage = await createBrowserPage(pie, browser, "test", true);
+  const browserPage = await createBrowserPage(pie, browser, pageName, true);
   return {
     browserPage: browserPage, 
     portalURL: await browserPage.getPortalURL()
@@ -143,6 +146,9 @@ async function getAppMessageResponse(mainWindow, response) {
       const params = Object.assign({}, appMessageParams, await firstAction.execute());
 
       const am = new AppMessage(params);
+
+      // console.log(am);
+
       return am;
     }
 
@@ -154,9 +160,11 @@ async function getAppMessageResponse(mainWindow, response) {
 
 async function main() {
   await initializeComponents();
-  // clearCookiesAndStorage();
 
-  const { browserPage, portalURL } = await setupBrowserConnection();
+  const pageName = "test";
+
+  const { browserPage, portalURL } = await setupBrowserConnection(pageName);
+  // clearCookiesAndStorage(browserPage);
   const mainWindow = setupMainWindow(portalURL);
 
   let messageChain = [new SystemPrompt("Alex", "Virginia")];
@@ -175,7 +183,11 @@ async function main() {
     messageChain.push(new UserMessage(userMessage.text));
 
     var nextRequest = null;
+
     do {
+      nextRequest = null;
+      mainWindow.webContents.send('set-overlay', true);
+
       const request = new AIRequest(messageChain);
       currentAIRequest = request;
       var aiMessage = await getAIResponse(browserPage, request);
@@ -187,14 +199,21 @@ async function main() {
 
       if (appMessage != null) {
         messageChain.push(appMessage);
-        nextRequest = new AIRequest(messageChain);
-      }
-      else if (aiMessage.includesQuestion) {
-        nextRequest = null;
+
+        if(!aiMessage.actions[0].blocking)  {
+          // console.log(`NON-BLOCKING: ${aiMessage.actions[0].action}`);
+          nextRequest = new AIRequest(messageChain);
+        }
+        else if (aiMessage.actions[0].action == REQUEST_USER_INTERVENTION) {
+          mainWindow.webContents.send('set-overlay', false);
+        }
       }
       else {
-        messageChain.push(new AppMessage({"Note": "Your last message was received by the user. Do not expect a response. Instead, continue with your task"}));
-        nextRequest = new AIRequest(messageChain);
+        if (!aiMessage.includesQuestion) {
+          appMessage = new AppMessage({"Notice": "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe your task is done, call completed."});
+          messageChain.push(appMessage);
+          nextRequest = new AIRequest(messageChain);
+        }
       }
 
       appResponding = false;
@@ -209,7 +228,7 @@ async function main() {
         sendAIMessage(mainWindow, message.chatMessage, type);
       }
 
-      if (message.actions && message.actions.length > 0 && message.actions[0].action != REQUEST_USER_CLARIFICATION) {
+      if (message.actions && message.actions.length > 0) {
         sendAIMessage(mainWindow, `${message.actions[0].action}: ${message.actions[0].actionText}`, 'info');
       }
     });
@@ -223,11 +242,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-
-  // await bp.page.goto('https://www.google.com', { waitUntil: 'networkidle0' });
-  // await clickClosestAriaName(bp.client, bp.page, bp.cursor, "Google Search");
-  // await keyboardType(bp.page, "reddit");
-  // await keyboardPress(bp.page, "Enter");
-  // await delay(1000);
-  // await clickClosestAriaName(bp.client, bp.page, bp.cursor, "https://www.reddit.com/");
-  // mainWindow.webContents.send('set-overlay', false);

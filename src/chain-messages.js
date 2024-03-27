@@ -60,10 +60,8 @@ class AIMessage extends Message {
             const line = lines[i];
             const parts = line.split(": ", 2);
             if (parts.length === 2) {
-                const action = parts[0].replace(/^\*+|\*+$/g, '');
-                const actionText = parts[1];
-
-                console.log(`${action}: ${actionText}`);
+                const action = parts[0].replace(/\*/g, "");
+                const actionText = parts[1].replace(/\*/g, "");
 
                 if (multiLineActions.includes(action)) {
                     // Concatenate the rest of the lines as the actionText for multiLineActions
@@ -125,7 +123,7 @@ class AppMessage extends YAMLMessage {
     }
 
     getMinifiedFullMessage() {
-        const parsedOut = ["Page Text"];
+        const parsedOut = ["Page Text for Current URL"];
 
         var minifiedParams = this.yamlParams;
     
@@ -155,13 +153,18 @@ class SystemPrompt extends SystemMessage {
                 "Each of your messages can contain at most ONE function call, any additional function calls will be ignored",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
                 "ALWAYS bold text/information/links/lists/summary from markdown that fulfills the user's request or answers their question directly. DO NOT bold other text",
-                "Utilize search engines when they are likely to be able to provide an answer you need"
+                "Utilize search engines when they are likely to be able to provide an answer you need",
+                "Don't ask for permission or the user's help, just go and do it yourself",
+                "Don't be lazy, instead stay focused on the user's stated goal.",
+                "When you get stuck getting to the information you need, use a search engine",
+                "When the user asks for access or control, use request_user_intervention"
               ],
               "When Navigating": [
-                "Use goto_url to navigate directly to a website, web app, or search engine",
-                "Use click_on to navigate to, or interact with, a link/icon/button/input from the Page Text",
+                "Use goto_url to navigate directly to a website, web app, or search engines. Navigate the desired domain and interact with it or use site search.",
+                "Use click_on to gain access through, navigate to, or interact with, a link/icon/button/input from the Page Text and get access to its Page Text",
                 "Use scroll_up/scroll_down to get Page Text elsewhere on the page",
-                "DO NOT assume that your directions had your intended effect, check in Page Text"
+                "DO NOT assume that your directions had your intended effect, check in Page Text",
+                // "Close/accept cookie notices, overlays, sign-in offers as they may interfere with click_on commands",
               ],
               "Page Text Limitations": [
                 "Only the most recent Page Text will be provided as part of the chat history",
@@ -173,7 +176,7 @@ class SystemPrompt extends SystemMessage {
                 "DO NOT ask for permission to navigate to a page or take a requested action - ONLY ask permission when you're about to take an action that costs money"
               ],
               "On Inputting Text": [
-                "You should click_on on the element you want to input text into before performing a type_in function call",
+                "You should click_on on the name of the element (found after the element type), and only then perform a type_in function call",
                 "Text boxes with focus will have the ► icon in them, and selected/checked elements will have ☑ in them",
                 "type_in clears the input/textarea before entering text",
                 "When using type_in, the exact text provided will be typed",
@@ -192,9 +195,9 @@ class SystemPrompt extends SystemMessage {
                 "reload: Reason for reload",
                 "go_back: Reason to go back",
                 "go_back: Reason to go forward",
-                "click_on: Element names provided in the Page Text",
+                "click_on: name of link/button/textbox/etc provided in the Page Text",
                 "type_in: EXACT text to type",
-                "request_user_intervention: Reason for assistance like CAPTCHA or authentication",
+                "request_user_intervention: Reason for assistance - user request, CAPTCHA or authentication",
                 "sleep: number of seconds until next action should occur",
                 "sleep_until: date and time",
                 "completed: Reason you believe ALL requested tasks are completed"

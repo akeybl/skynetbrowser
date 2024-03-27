@@ -6,7 +6,7 @@ const { storeSessionStr, getSessionStr } = require("./data-store.js");
 const { getAriaElementsText, clickClosestAriaName, keyboardType, keyboardPress } = require('./page-utilities.js');
 
 class HistoryEntry {
-    constructor(url, inPage=false) {
+    constructor(url, inPage = false) {
         this.date = new Date();
         this.url = url;
         this.inPage = inPage;
@@ -22,7 +22,7 @@ class BrowserPage {
         this.pageID = pageID;
         this.partitioned = partitioned;
         this.device = puppeteerVanilla.KnownDevices[device];
-        
+
         this.page = null;
         this.cursor = null;
         this.client = null;
@@ -57,20 +57,20 @@ class BrowserPage {
         });
 
         this.window.webContents.on('did-navigate', (event, url) => {
-            if (this.history.length === 0 || this.history[this.history.length-1].url !== url) {
+            if (this.history.length === 0 || this.history[this.history.length - 1].url !== url) {
                 this.history.push(new HistoryEntry(url, false));
             }
         });
 
         this.window.webContents.on('did-navigate-in-page', (event, url, isMainFrame) => {
-            if(isMainFrame && (this.history.length === 0 || this.history[this.history.length-1].url !== url)) {
+            if (isMainFrame && (this.history.length === 0 || this.history[this.history.length - 1].url !== url)) {
                 this.history.push(new HistoryEntry(url, true));
             }
         });
     }
-    
+
     async getPortalURL() {
-        if(!this.page.hasOpenPortal() || this.portalUrl === null) {
+        if (!this.page.hasOpenPortal() || this.portalUrl === null) {
             var portalUrl = await this.page.openPortal();
             portalUrl = portalUrl.replace("127.0.0.1", "127.0.0.1:3000");
             this.portalUrl = portalUrl;
@@ -104,21 +104,37 @@ class BrowserPage {
     }
 
     async clickClosestText(text) {
-        return await clickClosestAriaName(this.client, this.page, this.cursor, text);
+        await clickClosestAriaName(this.client, this.page, this.cursor, text);
     }
 
-    async keyboardType(text) {
-        return await keyboardType(this.page, text);
-    }
+    async typeIn(text) {
+        var splitText = [text,];
 
-    async keyboardPress(key) {
-        return await keyboardPress(this.page, key);
+        if (/\n|\\n/.test(text)) {
+            splitText = text.split(/\n|\\n/).reduce((acc, currentValue, currentIndex, array) => {
+                acc.push(currentValue);
+                // Do not add a newline character after the last element
+                if (currentIndex < array.length - 1) {
+                    acc.push("\n"); // This will add a literal backslash followed by n. Change as needed.
+                }
+                
+                return acc;
+            }, []);
+        }
+
+        for (const st of splitText) {
+            if (st == "\n") {
+                await keyboardPress(this.page, "Enter");
+            } else {
+                await keyboardType(this.page, st); // Make sure to pass 'st', not 'text'
+            }
+        }
     }
 }
 
-async function createBrowserPage(pie, browser, pageID, partitioned = false, device = 'Pixel 5', show = false, muted=true) {
+async function createBrowserPage(pie, browser, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
     const bp = new BrowserPage(pie, browser, pageID, partitioned, device, show, muted);
-    
+
     bp.page = await pie.getPage(browser, bp.window);
     await bp.restoreSession();
 
