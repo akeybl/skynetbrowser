@@ -324,6 +324,7 @@ async function getTreeText(node, level, inside) {
                     else if (checkable.includes(node.role.value)) {
                         for (let property of node.properties) {
                             if (property.name == "checked" && property.value.value) {
+                                // console.log(property.value);
                                 focusStr = "☑ ";
                                 break;
                             }
@@ -332,6 +333,7 @@ async function getTreeText(node, level, inside) {
                     else if (selectable.includes(node.role.value)) {
                         for (let property of node.properties) {
                             if (property.name == "selected" && property.value.value) {
+                                // console.log(property.value);
                                 focusStr = "☑ ";
                                 break;
                             }

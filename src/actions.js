@@ -32,10 +32,12 @@ class GotoUrlAction extends Action {
         }
 
         try {
-            await this.browserPage.page.goto(this.actionText, { waitUntil: 'networkidle0' });
+            await this.browserPage.page.goto(this.actionText);
         } catch (error) {
             console.log(`Error: ${error}`);
         }
+
+        await randomDelay(2000, 3000);
 
         return super.execute();
     }
