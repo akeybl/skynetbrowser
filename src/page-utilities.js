@@ -112,34 +112,34 @@ async function getAriaElement(client, page, cursor, label) {
     }
 }
 
-async function mapNameToElements(node) { //, visibleOnly = false) {
-    // Initialize an empty map
-    let map = {};
+// async function mapNameToElements(node) { //, visibleOnly = false) {
+//     // Initialize an empty map
+//     let map = {};
   
-    function traverse(node) {
-        if (!node) return;
+//     function traverse(node) {
+//         if (!node) return;
   
-        // Use name.value as key and push the current node's element into the array
-        const nameValue = node.name?.value.trim();
-        if (nameValue && nameValue != "") {
-            if (!map[nameValue]) {
-                map[nameValue] = [];
-            }
-            map[nameValue].push(node.element);
-        }
+//         // Use name.value as key and push the current node's element into the array
+//         const nameValue = node.name?.value.trim();
+//         if (nameValue && nameValue != "") {
+//             if (!map[nameValue]) {
+//                 map[nameValue] = [];
+//             }
+//             map[nameValue].push(node.element);
+//         }
   
-        // If the node has children, traverse them recursively
-        if (node.children && node.children.length > 0) {
-            node.children.forEach(child => {
-                traverse(child);
-            });
-        }
-    }
+//         // If the node has children, traverse them recursively
+//         if (node.children && node.children.length > 0) {
+//             node.children.forEach(child => {
+//                 traverse(child);
+//             });
+//         }
+//     }
   
-    traverse(node); // Start the traversal from the root node
+//     traverse(node); // Start the traversal from the root node
   
-    return map;
-  }  
+//     return map;
+//   }  
 
 async function clickClosestAriaName(client, page, cursor, label) {
     var frameIdToFrame = await getAllFrames(page);
@@ -459,29 +459,29 @@ async function getTreeText(node, level) {
     return fullText;
 }
 
-async function getAllFrames(page) {
-    var frames = [];
+// async function getAllFrames(page) {
+//     var frames = [];
 
-    for (let frame of page.frames()) {
-        await getChildFrames(frames, frame);
-    }
+//     for (let frame of page.frames()) {
+//         await getChildFrames(frames, frame);
+//     }
 
-    frameIdToFrame = frames.reduce((acc, item) => {
-        acc[item._id] = item;
-        return acc;
-    }, {});
+//     frameIdToFrame = frames.reduce((acc, item) => {
+//         acc[item._id] = item;
+//         return acc;
+//     }, {});
 
-    return frameIdToFrame;
-}
+//     return frameIdToFrame;
+// }
 
-async function getChildFrames(frames, frame) {
-    if (!frames.includes(frame)) {
-        frames.push(frame);
-    }
+// async function getChildFrames(frames, frame) {
+//     if (!frames.includes(frame)) {
+//         frames.push(frame);
+//     }
 
-    for (let childFrame of frame.childFrames()) {
-        await getChildFrames(frames, childFrame);
-    }
-}
+//     for (let childFrame of frame.childFrames()) {
+//         await getChildFrames(frames, childFrame);
+//     }
+// }
 
 module.exports = { clickElement, clickExactAriaName, getAriaElement, keyboardPress, keyboardType, selectAll, getAriaElementsText, clickClosestAriaName };

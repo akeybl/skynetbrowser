@@ -27,6 +27,7 @@ class BrowserPage {
         this.cursor = null;
         this.client = null;
         this.history = [];
+        this.pageHistory = [];
 
         var partition = "";
         if (partitioned) {

@@ -14,9 +14,9 @@ class Action {
 
         this.returnParams[`Current URL`] = await this.browserPage.page.url();
         const fullText = await this.browserPage.getPageText();
-        this.returnParams[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 3000);
+        this.returnParams[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
 
-        console.log(this.returnParams[`Page Text for Current URL`]);
+        // console.log(this.returnParams[`Page Text for Current URL`]);
 
         return this.returnParams;
     }
@@ -26,10 +26,10 @@ class GotoUrlAction extends Action {
     async execute() {
         console.log(`Going to URL: ${this.actionText}`);
 
-        // if (!isValidUrl(this.actionText)) {
-        //     this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
-        //     return super.execute();
-        // }
+        if (!isValidUrl(this.actionText)) {
+            this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
+            return super.execute();
+        }
 
         try {
             await this.browserPage.page.goto(this.actionText);

@@ -62,13 +62,13 @@ class AIMessage extends Message {
             const separatorIndex = line.indexOf(": ");
 
             if (separatorIndex !== -1) {
-                const action = line.substring(0, separatorIndex).replace(/\*/g, "");
-                const actionText = line.substring(separatorIndex + 2).replace(/\*/g, "");
+                const action = line.substring(0, separatorIndex).replace(/[\*`]/g, "");
+                const actionText = line.substring(separatorIndex + 2).replace(/[\*`]/g, "");
 
                 if (multiLineActions.includes(action)) {
                     // Concatenate the rest of the lines as the actionText for multiLineActions
                     var multilineText = actionText + lines.slice(i + 1).join("\n");
-                    multilineText = multilineText.replace(/\*/g, "");
+                    multilineText = multilineText.replace(/[\*`]/g, "");
 
                     actions.push(new (actionClasses[action] || Action)(this.browserPage, action, multilineText));
                     break; // Assuming the rest of the input is the action text
@@ -155,18 +155,19 @@ class SystemPrompt extends SystemMessage {
                 "You are a personal AI assistant with access to the web through me, thus extending your capabilities to any company or service that has a website (do not ever suggest using an app to the user)",
                 "I enable you to do anything a human can using a mobile web browser through function calls. Examples include but are not limited to sending emails, ordering taxis, and interacting with social media",
                 "Each of your messages can contain at most ONE function call, any additional function calls will be ignored",
+                "Each of your messages should be at most two paragraphs outside of lists",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
-                "ALWAYS bold text/information/links/lists/summary from markdown that fulfills the user's request or answers their question directly. DO NOT bold other text",
-                "Don't ask for permission or the user's help, just go and do it yourself",
-                "Don't give up! Try a different way of getting to what you need, that doesn't involve the user",
+                "ALWAYS bold text/information/links/lists/summary markdown that fulfills the user's request or answers their question directly. DO NOT bold other text",
+                // "Don't ask for permission or the user's help, just go and do it yourself",
+                // "Don't give up! Try a different way of getting to what you need, that doesn't involve the user",
                 "When the user asks for access or control, use request_user_intervention",
-                "Before interacting, use click_on to close or accept anything at the top or bottom of the page. It may be a cookie notice, modal, dialog, overlay, offer, etc",
               ],
               "When Navigating": [
                 "Use goto_url to navigate directly to a website, web app, or search engines",
+                "Before interacting, use click_on to close or accept anything at the top or bottom of the page. It may be a cookie notice, modal, dialog, overlay, offer, etc",
                 "Don't assume your goto_url URL was the correct destination, find another way if its not",
-                "Use click_on to gain access through, navigate to, or interact with, a link/icon/button/input from the Page Text and get access to its Page Text",
-                "Use scroll_up/scroll_down to get Page Text elsewhere on the page",
+                "Use click_on to gain access through, navigate to, or interact with, a link/icon/button/input from the Page Text",
+                // "Use scroll_up/scroll_down to get Page Text elsewhere on the page",
                 "DO NOT assume that your directions had your intended effect, check in Page Text",
               ],
               "Page Text Limitations": [
@@ -179,8 +180,8 @@ class SystemPrompt extends SystemMessage {
                 "DO NOT ask for permission to navigate to a page or take a requested action - ONLY ask permission when you're about to take an action that costs money"
               ],
               "On Inputting Text": [
-                "You should click_on on the input/textarea/combobox, and only then perform a type_in function call",
                 "Text boxes with focus will have the ► icon in them, and selected/checked elements will have ☑ in them",
+                "Always use click_on to focus the input/textarea/combobox prior to using type_in each time",
                 "type_in clears the input/textarea before entering text",
                 "When using type_in, the exact text provided will be typed",
                 "\\n is the equivalent of keyboard enter, but does NOT automatically change input fields",
@@ -189,15 +190,17 @@ class SystemPrompt extends SystemMessage {
               "On Scheduling Tasks": [
                 "Use the sleep/sleep_until functions to perform repetition in the future, schedule an action (for instance a reminder), or perform the next action at a specific schedule",
                 "Ask the user a question to determine frequency if not already clear from their original request",
-                "Once sleep/sleep_until is called, you will not be able to perform other actions until the sleep is complete"
+                "Once sleep/sleep_until is called, you will not be able to perform other actions until the sleep is complete or interrupted by the user"
               ],
               "Available Function Calls": [
                 "goto_url: URL",
-                "scroll_up: Reason for scroll",
-                "scroll_down: Reason for scroll",
+                "page_up: reason to get previous page of text",
+                "page_down: reason to get next page of text", 
+                // "scroll_up: Reason for scroll",
+                // "scroll_down: Reason for scroll",
                 "reload: Reason for reload",
                 "go_back: Reason to go back",
-                "go_back: Reason to go forward",
+                "go_forward: Reason to go forward",
                 "click_on: element type and name from Page Text, for instance button: Search or textbox: Search",
                 "type_in: only EXACT text to type -- do not include input/textbox name here",
                 "request_user_intervention: Reason for assistance - user request, CAPTCHA or authentication",

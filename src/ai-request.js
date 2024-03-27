@@ -42,6 +42,8 @@ class AIRequest {
     async getOpenAIResult(browserPage) {
         // try {
             // Modify the call to include signal for aborting the request
+            console.log(this.getMinifiedChain());
+
             const response = await client.chat.completions.create({
                 model: OPENAI_MODEL,
                 max_tokens: MAX_WRITE_TOKENS,

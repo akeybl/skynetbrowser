@@ -44,7 +44,7 @@ puppeteer.use(
 puppeteer.use(require('puppeteer-extra-plugin-session').default());
 
 const { createBrowserPage } = require("./browser-page.js");
-const { delay } = require("./utilities.js");
+const { delay, ttokTruncate } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
 const { UserMessage, AIMessage, AppMessage, SystemPrompt, USER_ROLE, SYSTEM_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
@@ -210,7 +210,14 @@ async function main() {
       }
       else {
         if (!aiMessage.includesQuestion) {
-          appMessage = new AppMessage({"Notice": "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe your task is done, call completed."});
+          var params = {};
+
+          params[`Current URL`] = await browserPage.page.url();
+          const fullText = await browserPage.getPageText();
+          params[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
+          params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe your task is done, call completed.";
+
+          appMessage = new AppMessage(params);
           messageChain.push(appMessage);
           nextRequest = new AIRequest(messageChain);
         }
