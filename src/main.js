@@ -112,47 +112,6 @@ function setupMainWindow(portalUrl) {
   return mainWindow;
 }
 
-async function getAppMessageFromResponse(mainWindow, response) {
-  try {
-    var appMessageParams = {};
-
-    if (response.actions.length > 0) {
-      firstAction = response.actions[0];
-
-      if (response.actions.length > 1) {
-        appMessageParams["Warning"] = `Only the first action, ${response.actions[0].action}, is addressed by this message. All other actions are ignored.`
-      }
-
-      const params = Object.assign({}, appMessageParams, await firstAction.execute());
-      const am = new AppMessage(params);
-
-      return am;
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Failed to get AI response:', error);
-  }
-}
-
-async function handleMessage({ signal } = {}) {
-  var isAborted = false;
-
-  signal.addEventListener('abort', () => {
-    isAborted = true;
-    console.log('Abort signal received');
-  }, { once: true });
-
-  while (true) {
-    if (isAborted) {
-      return;
-    }
-
-    console.log("looping");
-    await delay(500);
-  }
-}
-
 function sendMessageToRenderer(mainWindow, message) {
   const type = message.role === USER_ROLE ? 'sent' : 'received';
 
@@ -228,26 +187,37 @@ async function main() {
     console.log(`Got AI response: ${aiResponse.fullMessage}`);
     sendMessageToRenderer(mainWindow, aiResponse);
 
-    var appMessage = await getAppMessageFromResponse(mainWindow, aiResponse);
+    var appMessage = null;
+
+    if (aiResponse.actions.length > 0) {
+      var appMessageParams = {};
+
+      if (aiResponse.actions.length > 1) {
+        appMessageParams["Warning"] = `Only the first action, ${aiResponse.actions[0].action}, is addressed by this message. All other actions are ignored.`
+      }
+
+      const params = Object.assign({}, appMessageParams, await aiResponse.actions[0].execute());
+      appMessage = new AppMessage(params);
+    }
 
     messageChain.push(aiResponse);
 
     if(appMessage) {
       messageChain.push(appMessage);
     }
-    else if ( newUserMessages.length == 0) {
-      if (!aiResponse.includesQuestion && ( !aiResponse.actions || aiResponse.actions.length == 0 || ( aiResponse.actions.length > 0 && !aiResponse.actions[0].blocking ) ) ) {
-        var params = {};
-        params[`Current URL`] = await browserPage.page.url();
-        const fullText = await browserPage.getPageText();
-        params[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
-        params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, call completed.";
+    else if ( newUserMessages.length == 0 && !aiResponse.includesQuestion) {
+      var params = {};
+      params[`Current URL`] = await browserPage.page.url();
+      const fullText = await browserPage.getPageText();
+      params[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
+      params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, call completed.";
 
-        appMessage = new AppMessage(params);
-        messageChain.push(appMessage);
+      appMessage = new AppMessage(params);
+      messageChain.push(appMessage);
+    }
 
-        goAgain = true;
-      }
+    if (!aiResponse.includesQuestion && ( !aiResponse.actions || aiResponse.actions.length == 0 || ( aiResponse.actions.length > 0 && !aiResponse.actions[0].blocking ) ) ) {
+      goAgain = true;
     }
 
     if (aiResponse.actions.length > 0 && aiResponse.actions[0].action == REQUEST_USER_INTERVENTION) {
