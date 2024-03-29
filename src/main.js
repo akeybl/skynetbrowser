@@ -46,10 +46,11 @@ puppeteer.use(require('puppeteer-extra-plugin-session').default());
 const { createBrowserPage } = require("./browser-page.js");
 const { delay, ttokTruncate } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
-const { UserMessage, AIMessage, AppMessage, SystemPrompt, USER_ROLE, SYSTEM_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
+const { UserMessage, AppMessage, SystemPrompt, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
 const { REQUEST_USER_INTERVENTION } = require("./actions.js");
+const { PROMPT_COST, COMPLETION_COST } = require("./globals.js");
 
 // END REQUIRES
 
@@ -128,6 +129,29 @@ function sendUserMessageTextToRenderer(mainWindow, messageText) {
   mainWindow.webContents.send('receive-message', { html: marked.parse(messageText), type: "sent" });
 }
 
+function setPriceInWindow(mainWindow, messageChain) {
+  var costs = [];
+
+  messageChain.forEach(message => {
+    // console.log(message);
+    if ( message.role == ASSISTANT_ROLE ) {
+      const usage = message.aiResponse.usage;
+      const messageCost = usage.prompt_tokens * PROMPT_COST + usage.completion_tokens * COMPLETION_COST;
+      costs.push(messageCost);
+    }
+  });
+
+  // console.log(costs);
+
+  const totalCost = costs.reduce((accumulator, currentValue) => {
+    return accumulator + currentValue;
+  }, 0); // Initial value of the accumulator is 0
+  
+  if (costs.length > 0) {
+    mainWindow.webContents.send('update-price-box', { totalCost: totalCost, lastCost: costs[costs.length-1] });
+  }
+}
+
 async function main() {
   await initializeComponents();
 
@@ -161,22 +185,25 @@ async function main() {
 
   var goAgain = false;
 
-  while(true) {
-    mainWindow.webContents.send('set-overlay', true);
+  while (true) {
+    mainWindow.webContents.send('set-spinner', false);
 
-    while( true ) {
-      if (goAgain || newUserMessages.length > 0 ) {
+    while (true) {
+      if (goAgain || newUserMessages.length > 0) {
         break;
       }
 
       await delay(50);
     }
 
+    mainWindow.webContents.send('set-overlay', true);
+    mainWindow.webContents.send('set-spinner', true);
+
     goAgain = false
 
     messageChain = messageChain.concat(newUserMessages);
     newUserMessages = [];
-
+    
     const request = new AIRequest(abortController, messageChain);
     var aiResponse = await request.getOpenAIResult(browserPage);
 
@@ -201,22 +228,25 @@ async function main() {
     }
 
     messageChain.push(aiResponse);
+    setPriceInWindow(mainWindow, messageChain)
 
-    if(appMessage) {
+    if (appMessage) {
       messageChain.push(appMessage);
     }
-    else if ( newUserMessages.length == 0 && !aiResponse.includesQuestion) {
+    else if (newUserMessages.length == 0 && !aiResponse.includesQuestion) {
       var params = {};
       params[`Current URL`] = await browserPage.page.url();
       const fullText = await browserPage.getPageText();
       params[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
-      params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, call completed.";
+      params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, call completed:.";
 
       appMessage = new AppMessage(params);
       messageChain.push(appMessage);
+
+      goAgain = true;
     }
 
-    if (!aiResponse.includesQuestion && ( !aiResponse.actions || aiResponse.actions.length == 0 || ( aiResponse.actions.length > 0 && !aiResponse.actions[0].blocking ) ) ) {
+    if (!aiResponse.includesQuestion && (aiResponse.actions.length == 0 || (aiResponse.actions.length > 0 && !aiResponse.actions[0].blocking))) {
       goAgain = true;
     }
 

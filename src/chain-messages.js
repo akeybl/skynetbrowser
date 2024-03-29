@@ -82,14 +82,14 @@ class AIMessage extends Message {
             messages.push(line);
         }
 
-        if (messages.length > 0 && (messages[messages.length - 1].includes("?") || messages[messages.length - 1].includes("please") || messages[messages.length - 1].includes("Please"))) {
+        if (messages.length > 0 && (messages[messages.length - 1].includes("?") || messages[messages.length - 1].includes("please let") || messages[messages.length - 1].includes("Please let"))) {
             this.includesQuestion = true;
             // actions.push({ action: REQUEST_USER_CLARIFICATION, actionText: messages[messages.length - 1] });
             // messages.pop();
         }
         
         this.actions = actions;
-        this.chatMessage = messages.join("\n").trim().replace(/\*/g, '');
+        this.chatMessage = messages.join("\n").replace(/\*/g, '').replace(">-", "").trim();
     }
 }
 
@@ -153,11 +153,11 @@ class SystemPrompt extends SystemMessage {
         const yamlParams = {
             "Your Role": [
                 "You are a personal AI assistant with access to the web through me, thus extending your capabilities to any company or service that has a website (do not ever suggest using an app to the user)",
-                "I enable you to do anything a human can using a mobile web browser through function calls. Examples include but are not limited to sending emails, ordering taxis, and interacting with social media",
+                "I enable you to do anything a human can using a mobile web browser but through function calls. Examples include but are not limited to sending emails, ordering taxis, and interacting with social media",
                 "Each of your messages can contain at most ONE function call, any additional function calls will be ignored",
                 "Each of your messages should be at most two paragraphs outside of lists",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
-                "ALWAYS bold text/information/links/lists/summary markdown that fulfills the user's request or answers their question directly. DO NOT bold other text",
+                // "ALWAYS bold text/information/links/lists/summary markdown that fulfills the user's request or answers their question directly. DO NOT bold other text",
                 // "Don't ask for permission or the user's help, just go and do it yourself",
                 // "Don't give up! Try a different way of getting to what you need, that doesn't involve the user",
                 "When the user asks for access or control, use request_user_intervention",

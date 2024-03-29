@@ -10,12 +10,16 @@
 <body>
   <div class="grid-container">
     <div id="chat-container">
-      <div id="message-container"></div>
+      <div id="message-container">
+        <div class="spinner-container">
+          <div class="spinner"></div>
+        </div>  
+      </div>
       <form id="message-form">
         <input type="text" id="message-input" placeholder="Type a message...">
         <button type="submit">Send</button>
       </form>
-    </div>
+    </div>    
     <div class="overlay"></div> <!-- Overlay div -->
     <iframe id="browserIframe" class="browser-iframe"></iframe>
   </div>

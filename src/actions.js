@@ -28,7 +28,7 @@ class GotoUrlAction extends Action {
 
         if (!isValidUrl(this.actionText)) {
             this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
-            return super.execute();
+            return await super.execute();
         }
 
         try {
@@ -39,7 +39,7 @@ class GotoUrlAction extends Action {
 
         await randomDelay(4000, 5000);
 
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -53,7 +53,7 @@ class GoBackAction extends Action {
 
         await randomDelay(2000, 3000);
 
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -67,7 +67,7 @@ class GoForwardAction extends Action {
 
         await randomDelay(2000, 3000);
 
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -79,7 +79,7 @@ class ReloadAction extends Action {
 
         this.returnParams["Outcome"] = `${RELOAD} operation complete.`;
 
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -98,7 +98,7 @@ class ClickOnAction extends Action {
 
         await randomDelay(4000, 5000);
 
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -112,7 +112,7 @@ class TypeInAction extends Action {
 
         await randomDelay(2000, 3000);
 
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -120,7 +120,7 @@ class ScrollUpAction extends Action {
     async execute() {
         console.log(`Scrolling up`);
         // XXX: Not yet implemented
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -128,7 +128,7 @@ class ScrollDownAction extends Action {
     async execute() {
         console.log(`Scrolling down`);
         // XXX: Not yet implemented
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -141,7 +141,7 @@ class SleepAction extends Action {
     async execute() {
         console.log(`Sleeping for: ${this.actionText} milliseconds`);
         // XXX: Not yet implemented
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -154,7 +154,7 @@ class SleepUntilAction extends Action {
     async execute() {
         console.log(`Sleeping until: ${this.actionText} (a specific condition is met)`);
         // XXX: Not yet implemented
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -166,7 +166,7 @@ class RequestUserInterventionAction extends Action {
     
     async execute() {
         console.log(`Requesting user intervention: ${this.actionText}`);
-        return super.execute();
+        return await super.execute();
     }
 }
 
@@ -178,7 +178,7 @@ class CompletedAction extends Action {
 
     async execute() {
         console.log(`Action completed`);
-        return super.execute();
+        return await super.execute();
     }
 }
 

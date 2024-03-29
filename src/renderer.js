@@ -1,6 +1,7 @@
 window.onload = function () {
     document.getElementById('message-input').focus();
     window.electronAPI.resetMessages();
+    setSpinner(false);
 };
 
 window.electronAPI.loadUrl((event, url) => {
@@ -36,6 +37,7 @@ function displayMessages() {
         messageElement.innerHTML = message.html;
         messageContainer.appendChild(messageElement);
     });
+    messageContainer.innerHTML += '<div class="spinner-container"><div class="spinner"></div></div>'
     messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
 }
 
@@ -44,19 +46,41 @@ form.addEventListener('submit', e => {
     const message = messageInput.value.trim();
 
     if (message !== '') {
-        //   messages.push({ text: message, type: 'sent' });
-        //   displayMessages();
-
         window.electronAPI.sendMessage({ text: message, type: 'sent' });
         messageInput.value = ''; // Clear input
-        //   messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
     }
 });
 
 window.electronAPI.receiveMessage((event, message) => {
-    messages.push(message); // Assuming message is { text: string, type: 'received' }
+    messages.push(message);
     displayMessages();
 });
 
-// Initially display messages
-// displayMessages();
+window.electronAPI.updatePriceBox((event, params) => {
+    let priceBox = document.querySelector('.price-box');
+    if (!priceBox) {
+        priceBox = document.createElement('div');
+        priceBox.classList.add('price-box');
+        document.body.appendChild(priceBox); // Adjust based on your layout needs
+    }
+    priceBox.innerHTML = `$${params.lastCost.toFixed(2)} $${params.totalCost.toFixed(2)}`;
+});
+
+window.electronAPI.setSpinner((event, isVisible) => {
+    setSpinner(isVisible);
+});
+
+function setSpinner(isVisible) {
+    // Check if the spinner already exists
+    let spinner = document.querySelector('.spinner-container');
+    const messageContainer = document.getElementById('message-container');
+
+    if (isVisible) {
+        spinner.style.display = 'flex';
+    } else {
+        spinner.style.display = 'none';
+    }
+
+    // Scroll to the bottom to ensure the spinner is visible
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+}
