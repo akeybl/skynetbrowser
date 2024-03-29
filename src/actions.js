@@ -32,12 +32,12 @@ class GotoUrlAction extends Action {
         }
 
         try {
-            await this.browserPage.page.goto(this.actionText);
+            await this.browserPage.page.goto(this.actionText, {timeout: 10000});
         } catch (error) {
             console.log(`Error: ${error}`);
         }
 
-        await randomDelay(2000, 3000);
+        await randomDelay(4000, 5000);
 
         return super.execute();
     }
@@ -96,7 +96,7 @@ class ClickOnAction extends Action {
             this.returnParams["Error"] = `No text matching ${this.actionText} found.`
         }
 
-        await randomDelay(2000, 3000);
+        await randomDelay(4000, 5000);
 
         return super.execute();
     }

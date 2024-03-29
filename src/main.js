@@ -98,7 +98,7 @@ async function setupBrowserConnection(pageName) {
   const browser = await pie.connect(app, puppeteer);
   const browserPage = await createBrowserPage(pie, browser, pageName, false, "Pixel 5", false, false);
   return {
-    browserPage: browserPage, 
+    browserPage: browserPage,
     portalURL: await browserPage.getPortalURL()
   };
 }
@@ -112,26 +112,8 @@ function setupMainWindow(portalUrl) {
   return mainWindow;
 }
 
-function sendUserMessage(mainWindow, message) {
-  mainWindow.webContents.send('receive-message', { html: marked.parse(message), type: 'sent' });
-}
-
-function sendAIMessage(mainWindow, message, type = 'received') {
-  mainWindow.webContents.send('receive-message', { html: marked.parse(message), type });
-}
-
-async function getAIResponse(browserPage, request) {
-  return await request.getOpenAIResult(browserPage);
-}
-
-async function getAppMessageResponse(mainWindow, response) {
+async function getAppMessageFromResponse(mainWindow, response) {
   try {
-    console.log(`Got AI response: ${response.fullMessage}`);
-
-    if (response.chatMessage.trim() != "") {
-      sendAIMessage(mainWindow, response.chatMessage);
-    }
-
     var appMessageParams = {};
 
     if (response.actions.length > 0) {
@@ -141,13 +123,8 @@ async function getAppMessageResponse(mainWindow, response) {
         appMessageParams["Warning"] = `Only the first action, ${response.actions[0].action}, is addressed by this message. All other actions are ignored.`
       }
 
-      sendAIMessage(mainWindow, `${firstAction.action}: ${firstAction.actionText}`, 'info');
-
       const params = Object.assign({}, appMessageParams, await firstAction.execute());
-
       const am = new AppMessage(params);
-
-      // console.log(am);
 
       return am;
     }
@@ -156,6 +133,40 @@ async function getAppMessageResponse(mainWindow, response) {
   } catch (error) {
     console.error('Failed to get AI response:', error);
   }
+}
+
+async function handleMessage({ signal } = {}) {
+  var isAborted = false;
+
+  signal.addEventListener('abort', () => {
+    isAborted = true;
+    console.log('Abort signal received');
+  }, { once: true });
+
+  while (true) {
+    if (isAborted) {
+      return;
+    }
+
+    console.log("looping");
+    await delay(500);
+  }
+}
+
+function sendMessageToRenderer(mainWindow, message) {
+  const type = message.role === USER_ROLE ? 'sent' : 'received';
+
+  if (message.chatMessage.trim() != "") {
+    mainWindow.webContents.send('receive-message', { html: marked.parse(message.chatMessage), type });
+  }
+
+  if (message.actions && message.actions.length > 0) {
+    mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].action}: ${message.actions[0].actionText}`), type: 'info' });
+  }
+}
+
+function sendUserMessageTextToRenderer(mainWindow, messageText) {
+  mainWindow.webContents.send('receive-message', { html: marked.parse(messageText), type: "sent" });
 }
 
 async function main() {
@@ -167,79 +178,82 @@ async function main() {
   // clearCookiesAndStorage(browserPage);
   const mainWindow = setupMainWindow(portalURL);
 
+  var abortController = new AbortController();
   let messageChain = [new SystemPrompt("Alex", "Virginia")];
-  let currentAIRequest = null;
-  let appResponding = false;
-
-  ipcMain.on('send-message', async (event, userMessage) => {
-    console.log(`Got user message: ${userMessage.text}`);
-    if (currentAIRequest) currentAIRequest.cancelRequest();
-
-    while(appResponding) {
-      await delay(50);
-    }
-
-    sendUserMessage(mainWindow, userMessage.text);
-    messageChain.push(new UserMessage(userMessage.text));
-
-    var nextRequest = null;
-
-    do {
-      nextRequest = null;
-      mainWindow.webContents.send('set-overlay', true);
-
-      const request = new AIRequest(messageChain);
-      currentAIRequest = request;
-      var aiMessage = await getAIResponse(browserPage, request);
-      messageChain.push(aiMessage);
-      if (currentAIRequest === request) currentAIRequest = null;
-
-      appResponding = true;
-      var appMessage = await getAppMessageResponse(mainWindow, aiMessage);
-
-      if (appMessage != null) {
-        messageChain.push(appMessage);
-
-        if(!aiMessage.actions[0].blocking)  {
-          // console.log(`NON-BLOCKING: ${aiMessage.actions[0].action}`);
-          nextRequest = new AIRequest(messageChain);
-        }
-        else if (aiMessage.actions[0].action == REQUEST_USER_INTERVENTION) {
-          mainWindow.webContents.send('set-overlay', false);
-        }
-      }
-      else {
-        if (!aiMessage.includesQuestion) {
-          var params = {};
-
-          params[`Current URL`] = await browserPage.page.url();
-          const fullText = await browserPage.getPageText();
-          params[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
-          params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe your task is done, call completed.";
-
-          appMessage = new AppMessage(params);
-          messageChain.push(appMessage);
-          nextRequest = new AIRequest(messageChain);
-        }
-      }
-
-      appResponding = false;
-    } while(nextRequest != null);
-  });
+  let newUserMessages = [];
 
   ipcMain.on('reset-messages', (event) => {
     messageChain.forEach(message => {
       const type = message.role === USER_ROLE ? 'sent' : 'received';
 
-      if (message.chatMessage.trim() != "") {
-        sendAIMessage(mainWindow, message.chatMessage, type);
-      }
-
-      if (message.actions && message.actions.length > 0) {
-        sendAIMessage(mainWindow, `${message.actions[0].action}: ${message.actions[0].actionText}`, 'info');
-      }
+      sendMessageToRenderer(mainWindow, message);
     });
   });
+
+  ipcMain.on('send-message', async (event, userMessage) => {
+    abortController.abort();
+    abortController = new AbortController();
+
+    console.log(`Got user message: ${userMessage.text}`);
+    sendUserMessageTextToRenderer(mainWindow, userMessage.text);
+
+    newUserMessages.push(new UserMessage(userMessage.text));
+  });
+
+  var goAgain = false;
+
+  while(true) {
+    mainWindow.webContents.send('set-overlay', true);
+
+    while( true ) {
+      if (goAgain || newUserMessages.length > 0 ) {
+        break;
+      }
+
+      await delay(50);
+    }
+
+    goAgain = false
+
+    messageChain = messageChain.concat(newUserMessages);
+    newUserMessages = [];
+
+    const request = new AIRequest(abortController, messageChain);
+    var aiResponse = await request.getOpenAIResult(browserPage);
+
+    if (!aiResponse) {
+      continue;
+    }
+
+    console.log(`Got AI response: ${aiResponse.fullMessage}`);
+    sendMessageToRenderer(mainWindow, aiResponse);
+
+    var appMessage = await getAppMessageFromResponse(mainWindow, aiResponse);
+
+    messageChain.push(aiResponse);
+
+    if(appMessage) {
+      messageChain.push(appMessage);
+    }
+    else if ( newUserMessages.length == 0) {
+      if (!aiResponse.includesQuestion && ( !aiResponse.actions || aiResponse.actions.length == 0 || ( aiResponse.actions.length > 0 && !aiResponse.actions[0].blocking ) ) ) {
+        var params = {};
+        params[`Current URL`] = await browserPage.page.url();
+        const fullText = await browserPage.getPageText();
+        params[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
+        params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, call completed.";
+
+        appMessage = new AppMessage(params);
+        messageChain.push(appMessage);
+
+        goAgain = true;
+      }
+    }
+
+    if (aiResponse.actions.length > 0 && aiResponse.actions[0].action == REQUEST_USER_INTERVENTION) {
+      mainWindow.webContents.send('set-overlay', false);
+    }
+  }
 }
 
 app.on('ready', main);

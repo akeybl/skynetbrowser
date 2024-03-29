@@ -7,9 +7,9 @@ const client = new OpenAI({
 });
 
 class AIRequest {
-    constructor(messageChain) {
+    constructor(abortController, messageChain) {
         this.messageChain = messageChain;
-        this.controller = new AbortController(); // Add this line
+        this.controller = abortController;
     }
 
     getMinifiedChain() {
@@ -39,10 +39,13 @@ class AIRequest {
         return minifiedChain;
     }
 
+    async getClaudeResult(browserPage) {
+        // claude-3-sonnet-20240229 $3.00 / $15.00
+    }
+
     async getOpenAIResult(browserPage) {
-        // try {
-            // Modify the call to include signal for aborting the request
-            console.log(this.getMinifiedChain());
+        try {
+            // console.log(this.getMinifiedChain());
 
             const response = await client.chat.completions.create({
                 model: OPENAI_MODEL,
@@ -52,19 +55,15 @@ class AIRequest {
             { signal: this.controller.signal });
             
             return new AIMessage(response, browserPage);
-        // } catch (error) {
-        //     if (error.name === 'AbortError') {
-        //         console.log('Request was cancelled');
-        //     } else {
-        //         // Handle other errors
-        //         console.error('Failed to get response:', error);
-        //     }
-        // }
-    }
-
-    // Method to cancel the request
-    cancelRequest() {
-        this.controller.abort();
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Request was cancelled');
+            } else {
+                // Handle other errors
+                console.error('Failed to get response:', error);
+            }
+            return null;
+        }
     }
 }
 

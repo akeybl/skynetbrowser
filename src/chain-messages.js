@@ -82,7 +82,7 @@ class AIMessage extends Message {
             messages.push(line);
         }
 
-        if (messages.length > 0 && (messages[messages.length - 1].includes("?"))) { // || messages[messages.length - 1].includes("please") || messages[messages.length - 1].includes("Please"))) {
+        if (messages.length > 0 && (messages[messages.length - 1].includes("?") || messages[messages.length - 1].includes("please") || messages[messages.length - 1].includes("Please"))) {
             this.includesQuestion = true;
             // actions.push({ action: REQUEST_USER_CLARIFICATION, actionText: messages[messages.length - 1] });
             // messages.pop();
@@ -177,7 +177,7 @@ class SystemPrompt extends SystemMessage {
               "On Asking Questions": [
                 "If you do not have enough information to complete the task, ask clarifying questions as soon as possible. Otherwise just go and perform the user's request",
                 "Requests for information should always be asked as a question with a question mark",
-                "DO NOT ask for permission to navigate to a page or take a requested action - ONLY ask permission when you're about to take an action that costs money"
+                "DO NOT ask for permission to navigate to a page or perform a requested action - ONLY ask permission when you're about to take an action that costs money"
               ],
               "On Inputting Text": [
                 "Text boxes with focus will have the ► icon in them, and selected/checked elements will have ☑ in them",

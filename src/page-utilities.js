@@ -389,7 +389,8 @@ async function getTreeText(node, level) {
                 const nodeNameValue = textLines.join(" ");
 
                 // if (nodeNameValue.trim() != "") {
-                fullText += `${" ".repeat(level+1)}{${focusStr}${node.role.value}: ${nodeNameValue}}${editableValueStr}\n`;
+                // fullText += `${" ".repeat(level+1)}{${focusStr}${node.role.value}: ${nodeNameValue}}${editableValueStr}\n`;
+                fullText += `{${focusStr}${node.role.value}: ${nodeNameValue}}${editableValueStr}\n`;
                 // }
             }
             else {
@@ -438,7 +439,8 @@ async function getTreeText(node, level) {
             }
 
             if (text.trim() != "") {
-                fullText += `${" ".repeat(level+1)}${text}\n`;
+                // fullText += `${" ".repeat(level+1)}${text}\n`;
+                fullText += `${text}\n`;
             }
 
             for (let childNode of node.children) {
