@@ -1,6 +1,7 @@
 window.onload = function () {
     document.getElementById('message-input').focus();
     window.electronAPI.resetMessages();
+    setSpinner(false);
 };
 
 document.addEventListener("DOMContentLoaded", function(event){
@@ -33,6 +34,13 @@ let messages = [
 
 function displayMessages() {
     messageContainer.innerHTML = ''; // Clear existing messages
+
+    const firstMessage = document.createElement('div');
+    firstMessage.classList.add('message');
+    firstMessage.classList.add("received");
+    firstMessage.innerHTML = "Hi, how can I help you?";
+    messageContainer.appendChild(firstMessage);
+
     messages.forEach(message => {
         const messageElement = document.createElement('div');
 
@@ -45,6 +53,7 @@ function displayMessages() {
         messageElement.innerHTML = message.html;
         messageContainer.appendChild(messageElement);
     });
+
     messageContainer.innerHTML += '<div class="spinner-container"><div class="spinner"></div></div>'
     messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
 }
@@ -92,3 +101,6 @@ function setSpinner(isVisible) {
     // Scroll to the bottom to ensure the spinner is visible
     messageContainer.scrollTop = messageContainer.scrollHeight;
 }
+
+displayMessages();
+setSpinner(false);

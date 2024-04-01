@@ -149,6 +149,11 @@ button {
   /* Adjust this value to control the space between paragraphs */
 }
 
+.info a {
+  word-break: break-all; /* Breaks the text at any point to ensure it fits within its container */
+  overflow-wrap: break-word; /* Allows unbreakable words to be broken */
+}
+
 /* Price Box Overlay CSS */
 .price-box {
   position: absolute;

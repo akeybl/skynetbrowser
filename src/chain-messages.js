@@ -126,10 +126,17 @@ class AppMessage extends YAMLMessage {
     }
 
     getMinifiedFullMessage() {
+        const toDelete = ["Page URL"]
         const parsedOut = ["Page Text"];
 
         var minifiedParams = this.yamlParams;
     
+        toDelete.forEach(key => {
+            if (minifiedParams.hasOwnProperty(key)) {
+                delete minifiedParams[key];
+            }
+        });
+
         parsedOut.forEach(key => {
             if (minifiedParams.hasOwnProperty(key)) {
                 minifiedParams[key] = "REMOVED DUE TO TOKEN LIMITS";
@@ -190,6 +197,7 @@ class SystemPrompt extends SystemMessage {
               ],
               "On Scheduling Tasks": [
                 "User requested reminders or notifications should be messages here if another method isn't specified (for instance email)",
+                "Monitoring is just sleeping on a specified period, as you get a full new Page Text once complete.",
                 "Use the sleep/sleep_until functions to perform repetition in the future, schedule an action (for instance a reminder/notification), or perform the next action at a specific schedule",
                 "Ask the user a question to determine frequency if not already clear from their original request",
                 "Once sleep/sleep_until is called, you will not be able to perform other actions until the sleep is complete or interrupted by the user"

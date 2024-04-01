@@ -50,18 +50,18 @@ class AIRequest {
         return minifiedChain;
     }
 
-    async getResult(browserPage) {
+    async getResult() {
         console.log(this.getMinifiedChain());
 
         if(MODEL.includes("/")) {
-            return await this.getOpenRouterResult(browserPage);
+            return await this.getOpenRouterResult();
         }
         else {
-            return await this.getOpenAIResult(browserPage);
+            return await this.getOpenAIResult();
         }
     }
 
-    async getOpenAIResult(browserPage) {
+    async getOpenAIResult() {
         try {
             const response = await openAIClient.chat.completions.create({
                 model: MODEL,
@@ -82,7 +82,7 @@ class AIRequest {
         }
     }
 
-    async getOpenRouterResult(browserPage) {
+    async getOpenRouterResult() {
         try {
             var response = null;
 
