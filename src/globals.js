@@ -3,7 +3,7 @@ DEV_MODE = true;
 OPENAI_KEY = "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";
 OPENROUTER_API_KEY = "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";
 
-PAGE_TOKEN_LENGTH = 2000;
+PAGE_TOKEN_LENGTH = 1000;
 
 // gpt-3.5-turbo-0125, gpt-4, gpt-4-0125-preview, gpt-4-1106-preview, gpt-4-1106-vision-preview
 // MODEL = "gpt-4";

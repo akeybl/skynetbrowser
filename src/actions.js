@@ -7,30 +7,34 @@ class Action {
         this.actionText = actionText;
         this.returnParams = {};
         this.blocking = false;
+        this.urlAfterExecute = null;
+        this.fullTextAfterExecute = null;
+        this.pageTextAfterExecute = null;
     }
 
     async execute(browserPage) {
         // throw new Error('Execute method must be implemented by subclasses');
 
-        if (!this.returnParams[`Page URL`]) {
-            this.returnParams[`Page URL`] = await browserPage.page.url();
-            const fullText = await browserPage.getPageText();
-            const tokenLength = await ttokLength(fullText);
-            const fullTextPages = Math.ceil( tokenLength / PAGE_TOKEN_LENGTH );
-            this.returnParams["Page Number"] = `${browserPage.textPage}/${fullTextPages}`;
+        this.urlAfterExecute = await browserPage.page.url();
+        this.returnParams[`Page URL`] = this.urlAfterExecute;
 
-            this.returnParams[`Page Text`] = "";
+        this.fullTextAfterExecute = await browserPage.getPageText();
+        const tokenLength = await ttokLength(this.fullTextAfterExecute);
+        const fullTextPages = Math.ceil( tokenLength / PAGE_TOKEN_LENGTH );
+        this.returnParams["Page Number"] = `${browserPage.textPage}/${fullTextPages}`;
+        this.pageTextAfterExecute = "";
 
-            if (browserPage.textPage > 1) {
-                this.returnParams[`Page Text`] += "# ^ TRUNCATED, USE page_up FOR MORE\n";
-            }
-
-            this.returnParams[`Page Text`] += await ttokTruncate(fullText, PAGE_TOKEN_LENGTH * (browserPage.textPage-1), PAGE_TOKEN_LENGTH * browserPage.textPage);
-
-            if (this.returnParams[`Page Text`] != fullText) {
-                this.returnParams[`Page Text`] += "\n# v TRUNCATED, USE page_down FOR MORE"
-            }
+        if (browserPage.textPage > 1) {
+            this.pageTextAfterExecute += "# ^ TRUNCATED, USE page_up FOR MORE\n";
         }
+
+        this.pageTextAfterExecute += await ttokTruncate(this.fullTextAfterExecute, PAGE_TOKEN_LENGTH * (browserPage.textPage-1), PAGE_TOKEN_LENGTH * browserPage.textPage);
+
+        if ( browserPage.textPage != fullTextPages ) {
+            this.pageTextAfterExecute += "\n# v TRUNCATED, USE page_down FOR MORE"
+        }
+
+        this.returnParams[`Page Text`] = this.pageTextAfterExecute;
 
         // console.log(this.returnParams[`Page Text for Current URL`]);
 
