@@ -1,8 +1,11 @@
 window.onload = function () {
     document.getElementById('message-input').focus();
     window.electronAPI.resetMessages();
-    setSpinner(false);
 };
+
+document.addEventListener("DOMContentLoaded", function(event){
+    setSpinner(false);
+  });  
 
 window.electronAPI.loadUrl((event, url) => {
     console.log(`load-url: ${url}`);
@@ -32,7 +35,12 @@ function displayMessages() {
     messageContainer.innerHTML = ''; // Clear existing messages
     messages.forEach(message => {
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', message.type);
+
+        if (message.type != "info") {
+            messageElement.classList.add('message');
+        }
+
+        messageElement.classList.add(message.type);
         // Use the exposed `markdown.render` function
         messageElement.innerHTML = message.html;
         messageContainer.appendChild(messageElement);

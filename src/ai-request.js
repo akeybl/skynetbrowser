@@ -51,7 +51,7 @@ class AIRequest {
     }
 
     async getResult(browserPage) {
-        // console.log(this.getMinifiedChain());
+        console.log(this.getMinifiedChain());
 
         if(MODEL.includes("/")) {
             return await this.getOpenRouterResult(browserPage);

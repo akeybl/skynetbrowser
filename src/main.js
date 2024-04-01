@@ -43,13 +43,20 @@ puppeteer.use(
 
 puppeteer.use(require('puppeteer-extra-plugin-session').default());
 
+const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
+puppeteer.use(AdblockerPlugin({
+  blockTrackersAndAnnoyances: true,
+  // Optionally enable Cooperative Mode for several request interceptors
+  // interceptResolutionPriority: DEFAULT_INTERCEPT_RESOLUTION_PRIORITY
+}));
+
 const { createBrowserPage } = require("./browser-page.js");
 const { delay, ttokTruncate } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
 const { UserMessage, AppMessage, SystemPrompt, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
-const { Action, REQUEST_USER_INTERVENTION } = require("./actions.js");
+const { Action, REQUEST_USER_INTERVENTION, COMPLETED } = require("./actions.js");
 const { PROMPT_COST, COMPLETION_COST } = require("./globals.js");
 
 // END REQUIRES
@@ -121,7 +128,15 @@ function sendMessageToRenderer(mainWindow, message) {
   }
 
   if (message.actions && message.actions.length > 0) {
-    mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].action}: ${message.actions[0].actionText}`), type: 'info' });
+    if ( message.actions[0].action == COMPLETED ) {
+    }
+    else if ( message.actions[0].action != REQUEST_USER_INTERVENTION ) {
+      // console.log(`XXX: ${message.actions[0].action} vs ${REQUEST_USER_INTERVENTION}`);
+      mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].action}: ${message.actions[0].actionText}`), type: 'info' });
+    }
+    else {
+      mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].actionText}`), type: type });
+    }
   }
 }
 
@@ -158,10 +173,14 @@ async function main() {
   const pageName = "test";
 
   const { browserPage, portalURL } = await setupBrowserConnection(pageName);
+  
   // clearCookiesAndStorage(browserPage);
   const mainWindow = setupMainWindow(portalURL);
 
   var abortController = new AbortController();
+
+  await browserPage.page.goto("https://www.google.com/");
+  
   let messageChain = [new SystemPrompt("Alex", "Virginia")];
   let newUserMessages = [];
 
@@ -190,7 +209,7 @@ async function main() {
     mainWindow.webContents.send('set-spinner', false);
 
     while (true) {
-      if (goAgain || newUserMessages.length > 0) {
+      if (goAgain || newUserMessages.length > 0) {      
         break;
       }
 
@@ -201,6 +220,14 @@ async function main() {
     mainWindow.webContents.send('set-spinner', true);
 
     goAgain = false
+
+    // console.log(messageChain.length);
+    if (messageChain.length == 1) {
+      const act = new Action();
+      var params = await act.execute(browserPage);;
+      const am = new AppMessage(params);
+      messageChain.push(am);
+    }
 
     messageChain = messageChain.concat(newUserMessages);
     newUserMessages = [];
@@ -235,7 +262,7 @@ async function main() {
       messageChain.push(appMessage);
     }
     else if (newUserMessages.length == 0 && !aiResponse.includesQuestion) {
-      const a = new Action(null, null);
+      const a = new Action();
 
       var params = a.execute(browserPage);;
       params["Notice"] = "No function calls made. Your message was received by the user. Do not expect a response from the user. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, or there request is not possible due to moderation/capability, call completed:.";

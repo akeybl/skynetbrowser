@@ -30,10 +30,12 @@ body {
   left: 50%;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0);
+  /* background: rgba(255, 255, 255, 0.75); */
   /* transparent overlay */
   z-index: 10;
   /* Ensure it's above the iframe */
+  /* filter: grayscale(100%); */
+  /* filter: brightness(30%); */
 }
 
 #chat-container {
@@ -63,6 +65,7 @@ body {
 
 .message {
   max-width: 80%;
+  margin-top: 12px;
   margin-bottom: 12px;
   padding: 10px;
   border-radius: 20px;
@@ -127,6 +130,7 @@ button {
 
 /* System or Info Message Style */
 .info {
+  margin: 0px;
   align-self: center;
   /* Ensures the message is centered horizontally */
   color: #666;
@@ -137,6 +141,12 @@ button {
   /* Allows the message to span the full width if necessary */
   text-align: center;
   /* Centers the text within the message */
+}
+
+.info p {
+  margin-top: 0;
+  margin-bottom: 0px;
+  /* Adjust this value to control the space between paragraphs */
 }
 
 /* Price Box Overlay CSS */

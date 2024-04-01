@@ -2,7 +2,7 @@ const { randomDelay, isValidUrl, ttokTruncate, ttokLength } = require("./utiliti
 const { PAGE_TOKEN_LENGTH } = require("./globals.js");
 
 class Action {
-    constructor(action, actionText) {
+    constructor(action=null, actionText=null) {
         this.action = action;
         this.actionText = actionText;
         this.returnParams = {};
@@ -94,6 +94,8 @@ class ReloadAction extends Action {
         await browserPage.page.reload();
 
         this.returnParams["Outcome"] = `${RELOAD} operation complete.`;
+
+        await randomDelay(2000, 3000);
 
         return await super.execute(browserPage);
     }
@@ -235,4 +237,4 @@ const actionClasses = {
     // request_user_clarification: RequestUserClarificationAction
 };
 
-module.exports = { actionClasses, Action, REQUEST_USER_INTERVENTION, SLEEP, SLEEP_UNTIL, COMPLETED, TYPE_IN, PAGE_UP, PAGE_DOWN }; // , REQUEST_USER_CLARIFICATION };
+module.exports = { actionClasses, Action, REQUEST_USER_INTERVENTION, SLEEP, SLEEP_UNTIL, COMPLETED, TYPE_IN, PAGE_UP, PAGE_DOWN, COMPLETED }; // , REQUEST_USER_CLARIFICATION };

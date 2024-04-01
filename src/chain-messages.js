@@ -170,8 +170,8 @@ class SystemPrompt extends SystemMessage {
                 "DO NOT assume that your directions had your intended effect, check in Page Text",
               ],
               "Page Text Limitations": [
-                "Only the most recent Page Text will be provided as part of the chat history",
-                "To prevent the loss of information, make sure to chat extracted information before navigating, further interacting with the page, or requesting another page of text"
+                "Only the most recent Page Text will be provided as part of the message history",
+                "To prevent the loss of important information or interactive elements, make sure to message them before navigating, interacting with the page, or using page_down/page_up"
               ],
               "On Asking Questions": [
                 // "If you do not have enough information to complete the task, ask clarifying questions as soon as possible. Otherwise just go and perform the user's request",
@@ -203,7 +203,7 @@ class SystemPrompt extends SystemMessage {
                 "go_forward: your reason to go forward",
                 "click_on: element type and name from Page Text, for instance button: Search or textbox: Search",
                 "type_in: only EXACT text to type into the current input/textbox - do not include input/textbox name here",
-                "request_user_intervention: Reason for assistance - user request, CAPTCHA or authentication",
+                "request_user_intervention: A reason for giving the user control of the browser - upon user request, CAPTCHA or authentication",
                 "sleep: number of seconds until next action should occur",
                 "sleep_until: date and time",
                 "completed: your reason for thinking ALL requested tasks are completed"
