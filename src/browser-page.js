@@ -29,6 +29,8 @@ class BrowserPage {
         this.history = [];
         this.pageHistory = [];
 
+        this.textPage = 1;
+
         var partition = "";
         if (partitioned) {
             partition = `persist:${pageID}`;
@@ -59,6 +61,7 @@ class BrowserPage {
 
         this.window.webContents.on('did-navigate', (event, url) => {
             if (this.history.length === 0 || this.history[this.history.length - 1].url !== url) {
+                this.textPage = 1;
                 this.history.push(new HistoryEntry(url, false));
             }
         });

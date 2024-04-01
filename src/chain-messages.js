@@ -37,11 +37,10 @@ class Message {
 }
 
 class AIMessage extends Message {
-    constructor(aiResponse, browserPage, date = null) {
+    constructor(aiResponse, date = null) {
         super(ASSISTANT_ROLE, aiResponse.choices[0].message.content, date);
 
         this.aiResponse = aiResponse;
-        this.browserPage = browserPage;
         this.actions = null;
         this.chatMessage = null;
         this.includesQuestion = false;
@@ -62,7 +61,7 @@ class AIMessage extends Message {
             const separatorIndex = line.indexOf(": ");
 
             if (separatorIndex !== -1) {
-                const action = line.substring(0, separatorIndex).replace(/[\*`]/g, "");
+                const action = line.substring(0, separatorIndex).replace(/[\*`]/g, "").replace(/^>-*\s*/g, "");
                 const actionText = line.substring(separatorIndex + 2).replace(/[\*`]/g, "");
 
                 if (multiLineActions.includes(action)) {
@@ -70,11 +69,11 @@ class AIMessage extends Message {
                     var multilineText = actionText + lines.slice(i + 1).join("\n");
                     multilineText = multilineText.replace(/[\*`]/g, "");
 
-                    actions.push(new (actionClasses[action] || Action)(this.browserPage, action, multilineText));
+                    actions.push(new (actionClasses[action] || Action)(action, multilineText));
                     break; // Assuming the rest of the input is the action text
                 }
                 else if (action in actionClasses) {
-                    actions.push(new (actionClasses[action] || Action)(this.browserPage, action, actionText));
+                    actions.push(new (actionClasses[action] || Action)(action, actionText));
                     continue; // Skip to the next iteration of the loop
                 }
             }
@@ -82,7 +81,7 @@ class AIMessage extends Message {
             messages.push(line);
         }
 
-        if (messages.length > 0 && (messages[messages.length - 1].includes("?") || messages[messages.length - 1].includes("please let") || messages[messages.length - 1].includes("Please let"))) {
+        if (messages.length > 0 && (messages[messages.length - 1].includes("?") || messages[messages.length - 1].includes("please let") || messages[messages.length - 1].includes("Please let") || messages[messages.length - 1].includes("Let me know") || messages[messages.length - 1].includes("let me know") )) {
             this.includesQuestion = true;
             // actions.push({ action: REQUEST_USER_CLARIFICATION, actionText: messages[messages.length - 1] });
             // messages.pop();
@@ -127,7 +126,7 @@ class AppMessage extends YAMLMessage {
     }
 
     getMinifiedFullMessage() {
-        const parsedOut = ["Page Text for Current URL"];
+        const parsedOut = ["Page Text"];
 
         var minifiedParams = this.yamlParams;
     
@@ -155,7 +154,7 @@ class SystemPrompt extends SystemMessage {
                 "You are a personal AI assistant with access to the web through me, thus extending your capabilities to any company or service that has a website (do not ever suggest using an app to the user)",
                 "I enable you to do anything a human can using a mobile web browser but through function calls. Examples include but are not limited to sending emails, ordering taxis, and interacting with social media",
                 "Each of your messages can contain at most ONE function call, any additional function calls will be ignored",
-                "Each of your messages should be at most two paragraphs outside of lists",
+                // "Each of your messages should be at most two paragraphs outside of lists",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
                 // "ALWAYS bold text/information/links/lists/summary markdown that fulfills the user's request or answers their question directly. DO NOT bold other text",
                 // "Don't ask for permission or the user's help, just go and do it yourself",
@@ -172,41 +171,42 @@ class SystemPrompt extends SystemMessage {
               ],
               "Page Text Limitations": [
                 "Only the most recent Page Text will be provided as part of the chat history",
-                "To prevent the loss of information, make sure to chat extracted information before navigating, further interacting with the page, or scrolling"
+                "To prevent the loss of information, make sure to chat extracted information before navigating, further interacting with the page, or requesting another page of text"
               ],
               "On Asking Questions": [
-                "If you do not have enough information to complete the task, ask clarifying questions as soon as possible. Otherwise just go and perform the user's request",
+                // "If you do not have enough information to complete the task, ask clarifying questions as soon as possible. Otherwise just go and perform the user's request",
+                "Try to fulfill the user's requests without asking questions whenever possible",
                 "Requests for information should always be asked as a question with a question mark",
-                "DO NOT ask for permission to navigate to a page or perform a requested action - ONLY ask permission when you're about to take an action that costs money"
+                "DO NOT ask for permission to navigate to a page, click on something, or read something a linked page - ONLY ask permission when you're about to take an action that costs money"
               ],
               "On Inputting Text": [
-                "Text boxes with focus will have the ► icon in them, and selected/checked elements will have ☑ in them",
+                "type_in only types into a SINGLE text box that is currently focused with ►",
+                "\\n is the equivalent of keyboard enter, but NEVER focuses a different input",
+                "The text box with focus will have the ► icon in it, and selected/checked elements will have ☑ in them",
                 "Always use click_on to focus the input/textarea/combobox prior to using type_in each time",
                 "type_in clears the input/textarea before entering text",
                 "When using type_in, the exact text provided will be typed",
-                "\\n is the equivalent of keyboard enter, but does NOT automatically change input fields",
                 "NEVER type_in example text, [template variable] text, placeholder text, or text that you'd like the user to replace (for example NEVER type 'Current Location') -- ask the user a question instead"
               ],
               "On Scheduling Tasks": [
-                "Use the sleep/sleep_until functions to perform repetition in the future, schedule an action (for instance a reminder), or perform the next action at a specific schedule",
+                "User requested reminders or notifications should be messages here if another method isn't specified (for instance email)",
+                "Use the sleep/sleep_until functions to perform repetition in the future, schedule an action (for instance a reminder/notification), or perform the next action at a specific schedule",
                 "Ask the user a question to determine frequency if not already clear from their original request",
                 "Once sleep/sleep_until is called, you will not be able to perform other actions until the sleep is complete or interrupted by the user"
               ],
               "Available Function Calls": [
-                "goto_url: URL",
-                "page_up: reason to get previous page of text",
-                "page_down: reason to get next page of text", 
-                // "scroll_up: Reason for scroll",
-                // "scroll_down: Reason for scroll",
-                "reload: Reason for reload",
-                "go_back: Reason to go back",
-                "go_forward: Reason to go forward",
+                "goto_url: full valid URL",
+                "page_up: your reason to get previous page of text",
+                "page_down: your reason to get next page of text", 
+                "reload: your reason for reload",
+                "go_back: your reason to go back",
+                "go_forward: your reason to go forward",
                 "click_on: element type and name from Page Text, for instance button: Search or textbox: Search",
-                "type_in: only EXACT text to type -- do not include input/textbox name here",
+                "type_in: only EXACT text to type into the current input/textbox - do not include input/textbox name here",
                 "request_user_intervention: Reason for assistance - user request, CAPTCHA or authentication",
                 "sleep: number of seconds until next action should occur",
                 "sleep_until: date and time",
-                "completed: Reason you believe ALL requested tasks are completed"
+                "completed: your reason for thinking ALL requested tasks are completed"
               ],
               "How To Make Function Calls": [
                 "Only one function call is allowed per message",

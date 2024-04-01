@@ -1,20 +1,36 @@
-const { randomDelay, isValidUrl, ttokTruncate } = require("./utilities.js");
+const { randomDelay, isValidUrl, ttokTruncate, ttokLength } = require("./utilities.js");
+const { PAGE_TOKEN_LENGTH } = require("./globals.js");
 
 class Action {
-    constructor(browserPage, action, actionText) {
-        this.browserPage = browserPage;
+    constructor(action, actionText) {
         this.action = action;
         this.actionText = actionText;
         this.returnParams = {};
         this.blocking = false;
     }
 
-    async execute() {
+    async execute(browserPage) {
         // throw new Error('Execute method must be implemented by subclasses');
 
-        this.returnParams[`Current URL`] = await this.browserPage.page.url();
-        const fullText = await this.browserPage.getPageText();
-        this.returnParams[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
+        if (!this.returnParams[`Page URL`]) {
+            this.returnParams[`Page URL`] = await browserPage.page.url();
+            const fullText = await browserPage.getPageText();
+            const tokenLength = await ttokLength(fullText);
+            const fullTextPages = Math.ceil( tokenLength / PAGE_TOKEN_LENGTH );
+            this.returnParams["Page Number"] = `${browserPage.textPage}/${fullTextPages}`;
+
+            this.returnParams[`Page Text`] = "";
+
+            if (browserPage.textPage > 1) {
+                this.returnParams[`Page Text`] += "# ^ TRUNCATED, USE page_up FOR MORE\n";
+            }
+
+            this.returnParams[`Page Text`] += await ttokTruncate(fullText, PAGE_TOKEN_LENGTH * (browserPage.textPage-1), PAGE_TOKEN_LENGTH * browserPage.textPage);
+
+            if (this.returnParams[`Page Text`] != fullText) {
+                this.returnParams[`Page Text`] += "\n# v TRUNCATED, USE page_down FOR MORE"
+            }
+        }
 
         // console.log(this.returnParams[`Page Text for Current URL`]);
 
@@ -23,7 +39,7 @@ class Action {
 }
 
 class GotoUrlAction extends Action {
-    async execute() {
+    async execute(browserPage) {
         console.log(`Going to URL: ${this.actionText}`);
 
         if (!isValidUrl(this.actionText)) {
@@ -32,63 +48,63 @@ class GotoUrlAction extends Action {
         }
 
         try {
-            await this.browserPage.page.goto(this.actionText, {timeout: 10000});
+            await browserPage.page.goto(this.actionText, {timeout: 10000});
         } catch (error) {
             console.log(`Error: ${error}`);
         }
 
         await randomDelay(4000, 5000);
 
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class GoBackAction extends Action {
-    async execute() {
+    async execute(browserPage) {
         console.log(`Going back in browser history`);
 
-        await this.browserPage.page.goBack();
+        await browserPage.page.goBack();
 
         this.returnParams["Outcome"] = `${GO_BACK} operation complete.`;
 
         await randomDelay(2000, 3000);
 
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class GoForwardAction extends Action {
-    async execute() {
+    async execute(browserPage) {
         console.log(`Going forward in browser history`);
 
-        await this.browserPage.page.goForward();
+        await browserPage.page.goForward();
 
         this.returnParams["Outcome"] = `${GO_FORWARD} operation complete.`;
 
         await randomDelay(2000, 3000);
 
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class ReloadAction extends Action {
-    async execute() {
+    async execute(browserPage) {
         console.log(`Reloading the page`);
 
-        await this.browserPage.page.reload();
+        await browserPage.page.reload();
 
         this.returnParams["Outcome"] = `${RELOAD} operation complete.`;
 
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class ClickOnAction extends Action {
-    async execute() {
+    async execute(browserPage) {
         console.log(`Clicking on: ${this.actionText}`);
 
         try {
-            await this.browserPage.clickClosestText(this.actionText);
+            await browserPage.clickClosestText(this.actionText);
             this.returnParams["Outcome"] = `${CLICK_ON} operation complete.`;
         }
         catch {
@@ -98,87 +114,87 @@ class ClickOnAction extends Action {
 
         await randomDelay(4000, 5000);
 
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class TypeInAction extends Action {
-    async execute() {
+    async execute(browserPage) {
         console.log(`Typing in: ${this.actionText}`);
 
-        await this.browserPage.typeIn(this.actionText);
+        await browserPage.typeIn(this.actionText);
         
         this.returnParams["Outcome"] = `${TYPE_IN} operation complete.`;
 
         await randomDelay(2000, 3000);
 
-        return await super.execute();
-    }
-}
-
-class ScrollUpAction extends Action {
-    async execute() {
-        console.log(`Scrolling up`);
-        // XXX: Not yet implemented
-        return await super.execute();
-    }
-}
-
-class ScrollDownAction extends Action {
-    async execute() {
-        console.log(`Scrolling down`);
-        // XXX: Not yet implemented
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class SleepAction extends Action {
-    constructor(browserPage, action, actionText) {
-        super(browserPage, action, actionText);
+    constructor(action, actionText) {
+        super(action, actionText);
         this.blocking = true;
     }
 
-    async execute() {
+    async execute(browserPage) {
         console.log(`Sleeping for: ${this.actionText} milliseconds`);
         // XXX: Not yet implemented
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class SleepUntilAction extends Action {
-    constructor(browserPage, action, actionText) {
-        super(browserPage, action, actionText);
+    constructor(action, actionText) {
+        super(action, actionText);
         this.blocking = true;
     }
 
-    async execute() {
+    async execute(browserPage) {
         console.log(`Sleeping until: ${this.actionText} (a specific condition is met)`);
         // XXX: Not yet implemented
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class RequestUserInterventionAction extends Action {
-    constructor(browserPage, action, actionText) {
-        super(browserPage, action, actionText);
+    constructor(action, actionText) {
+        super(action, actionText);
         this.blocking = true;
     }
     
-    async execute() {
+    async execute(browserPage) {
         console.log(`Requesting user intervention: ${this.actionText}`);
-        return await super.execute();
+        return await super.execute(browserPage);
     }
 }
 
 class CompletedAction extends Action {
-    constructor(browserPage, action, actionText) {
-        super(browserPage, action, actionText);
+    constructor(action, actionText) {
+        super(action, actionText);
         this.blocking = true;
     }
 
-    async execute() {
+    async execute(browserPage) {
         console.log(`Action completed`);
-        return await super.execute();
+        return await super.execute(browserPage);
+    }
+}
+
+class PageUpAction extends Action {    
+    async execute(browserPage) {
+        console.log(`Paging up`);
+        browserPage.textPage -= 1;
+        return await super.execute(browserPage);
+    }
+}
+
+class PageDownAction extends Action {    
+    async execute(browserPage) {
+        console.log(`Paging down`);
+        browserPage.textPage += 1;
+        return await super.execute(browserPage);
     }
 }
 
@@ -193,8 +209,8 @@ const GO_BACK = "go_back";
 const GO_FORWARD = "go_forward";
 const RELOAD = "reload";
 const CLICK_ON = "click_on";
-const SCROLL_UP = "scroll_up";
-const SCROLL_DOWN = "scroll_down";
+const PAGE_UP = "page_up";
+const PAGE_DOWN = "page_down";
 const SLEEP = "sleep";
 const SLEEP_UNTIL = "sleep_until";
 const REQUEST_USER_INTERVENTION = "request_user_intervention";
@@ -209,8 +225,8 @@ const actionClasses = {
     reload: ReloadAction,
     click_on: ClickOnAction,
     type_in: TypeInAction,
-    scroll_up: ScrollUpAction,
-    scroll_down: ScrollDownAction,
+    page_up: PageUpAction,
+    page_down: PageDownAction,
     sleep: SleepAction,
     sleep_until: SleepUntilAction,
     type_in: TypeInAction,
@@ -219,4 +235,4 @@ const actionClasses = {
     // request_user_clarification: RequestUserClarificationAction
 };
 
-module.exports = { actionClasses, Action, REQUEST_USER_INTERVENTION, SLEEP, SLEEP_UNTIL, COMPLETED, TYPE_IN}; // , REQUEST_USER_CLARIFICATION };
+module.exports = { actionClasses, Action, REQUEST_USER_INTERVENTION, SLEEP, SLEEP_UNTIL, COMPLETED, TYPE_IN, PAGE_UP, PAGE_DOWN }; // , REQUEST_USER_CLARIFICATION };

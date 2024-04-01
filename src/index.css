@@ -165,8 +165,8 @@ button {
   border: 4px solid rgba(0, 0, 0, 0.1); /* Light grey border */
   border-top-color: #007aff; /* Blue color for the spinner */
   border-radius: 50%; /* Make it a circle */
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
   animation: spin 1s linear infinite; /* Spin animation */
 }
 

@@ -5,6 +5,15 @@ const isMac = os.platform() === "darwin";
 const isWindows = os.platform() === "win32";
 const isLinux = os.platform() === "linux";
 
+async function ttokLength(inputString) {
+    const encoding = tiktoken.encoding_for_model("gpt-4");
+
+    // Tokenize the input string
+    const tokens = encoding.encode(inputString);
+
+    return tokens.length;
+}
+
 async function ttokTruncate(inputString, tokenStart = 0, tokenEnd = 3000) {
     // Assuming tiktoken is imported and initialized elsewhere in your code
     const encoding = tiktoken.encoding_for_model("gpt-4");
@@ -78,4 +87,4 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate };
+module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate, ttokLength };

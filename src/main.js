@@ -49,7 +49,7 @@ const { clearSessions } = require("./data-store.js");
 const { UserMessage, AppMessage, SystemPrompt, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
-const { REQUEST_USER_INTERVENTION } = require("./actions.js");
+const { Action, REQUEST_USER_INTERVENTION } = require("./actions.js");
 const { PROMPT_COST, COMPLETION_COST } = require("./globals.js");
 
 // END REQUIRES
@@ -170,6 +170,7 @@ async function main() {
       const type = message.role === USER_ROLE ? 'sent' : 'received';
 
       sendMessageToRenderer(mainWindow, message);
+      setPriceInWindow(mainWindow, messageChain)
     });
   });
 
@@ -205,7 +206,7 @@ async function main() {
     newUserMessages = [];
     
     const request = new AIRequest(abortController, messageChain);
-    var aiResponse = await request.getOpenAIResult(browserPage);
+    var aiResponse = await request.getResult(browserPage);
 
     if (!aiResponse) {
       continue;
@@ -220,10 +221,10 @@ async function main() {
       var appMessageParams = {};
 
       if (aiResponse.actions.length > 1) {
-        appMessageParams["Warning"] = `Only the first action, ${aiResponse.actions[0].action}, is addressed by this message. All other actions are ignored.`
+        appMessageParams["WARNING"] = `Only the first action, ${aiResponse.actions[0].action}, is addressed by this message. All other actions were ignored and need to be sent again if still appropriate.`
       }
 
-      const params = Object.assign({}, appMessageParams, await aiResponse.actions[0].execute());
+      const params = Object.assign({}, appMessageParams, await aiResponse.actions[0].execute(browserPage));
       appMessage = new AppMessage(params);
     }
 
@@ -234,11 +235,10 @@ async function main() {
       messageChain.push(appMessage);
     }
     else if (newUserMessages.length == 0 && !aiResponse.includesQuestion) {
-      var params = {};
-      params[`Current URL`] = await browserPage.page.url();
-      const fullText = await browserPage.getPageText();
-      params[`Page Text for Current URL`] = await ttokTruncate(fullText, 0, 2000);
-      params["Notice"] = "Your message was received by the user. Do not expect a response. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, call completed:.";
+      const a = new Action(null, null);
+
+      var params = a.execute(browserPage);;
+      params["Notice"] = "No function calls made. Your message was received by the user. Do not expect a response from the user. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, or there request is not possible due to moderation/capability, call completed:.";
 
       appMessage = new AppMessage(params);
       messageChain.push(appMessage);
