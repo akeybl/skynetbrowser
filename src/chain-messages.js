@@ -113,7 +113,7 @@ class UserMessage extends YAMLMessage {
 
         const yamlParams = {
             "Sent At": formatDate(sentAtDate),
-            "User Message": userfullMessage
+            "USER DIRECT MESSAGE": userfullMessage
         };
 
         super(USER_ROLE, yamlParams, sentAtDate);

@@ -124,6 +124,7 @@ async function clickClosestAriaName(client, page, cursor, label) {
     const match = label.match(regex);
 
     if (match) {
+        label = label.replace(match[0], "");
         elementIndex = parseInt(match[1], 10) - 1;
     }
 
@@ -327,8 +328,9 @@ async function getAriaElementsText(client, page) {
     };
     
     const treeTextWithNumbers = addNumberToRepeatingStrings(treeText);
-    
-    return treeTextWithNumbers.join("");
+    const treeTextWithNumbersStr = treeTextWithNumbers.join("\n");
+
+    return treeTextWithNumbersStr.replace(/\n+/g, '\n');
 }
 
 function getFullNodeText(node) {
@@ -346,10 +348,6 @@ function getFullNodeText(node) {
 
     const uniqueArray = [...new Set(nodeTextArray)];
     return uniqueArray;
-}
-
-async function getTreeTextWithNumbers(node) {
-    
 }
 
 async function getTreeText(node, level) {
