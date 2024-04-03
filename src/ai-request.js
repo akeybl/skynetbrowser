@@ -1,6 +1,6 @@
 const OpenAI = require("openai");
 const { MODEL, MAX_WRITE_TOKENS, OPENAI_KEY, OPENROUTER_API_KEY } = require('./globals.js');
-const { AIMessage, AppMessage, UserMessage, SystemPrompt } = require('./chain-messages.js');
+const { AIMessage, AppMessage, UserMessage, SystemPrompt, SystemMessage } = require('./chain-messages.js');
 const { delay } = require('./utilities.js');
 
 const openAIClient = new OpenAI({
@@ -24,39 +24,54 @@ class AIRequest {
     }
 
     getMinifiedChain() {
-        // Initialize the array to store the minified messages
         const minifiedChain = [];
 
         var appMessageIndex = 0;
         var userMessageIndex = 0;
+        var aiMessageIndex = 0;
 
         var numSkippedMessages = 0;
 
         for (let i = this.messageChain.length - 1; i >= 0; i--) {
             const currMessage = this.messageChain[i];
 
+            var messageForAI = null;
+
             if (currMessage instanceof AppMessage) {
                 // Need to figure out how to do navigation changes
-                minifiedChain.push( currMessage.getMessageForAI(appMessageIndex) );
+                messageForAI = currMessage.getMessageForAI(appMessageIndex);
                 appMessageIndex += 1;
             }
             else if (currMessage instanceof AIMessage) {
-                minifiedChain.push( currMessage.getMessageForAI() );
+                messageForAI = currMessage.getMessageForAI(aiMessageIndex);
+                aiMessageIndex += 1;
             }
             else if (currMessage instanceof UserMessage) {
-                minifiedChain.push( currMessage.getMessageForAI(userMessageIndex) );
+                messageForAI = currMessage.getMessageForAI(userMessageIndex);
                 userMessageIndex += 1;
             }
             else if (currMessage instanceof SystemPrompt ) {
-                minifiedChain.push( currMessage.getMessageForAI() );
+                messageForAI = currMessage.getMessageForAI();
             }
             else {
-                minifiedChain.push( currMessage.getMessageForAI() );
+                messageForAI = currMessage.getMessageForAI();
+            }
+
+            if ( messageForAI ) {
+                if (numSkippedMessages > 0 ) {
+                    const sm = new SystemMessage({"Notice": `Skipped ${numSkippedMessages} due to message chain length requirements`});
+                    minifiedChain.push( sm.getMessageForAI() );
+                    numSkippedMessages = 0;
+                }
+
+                minifiedChain.push( messageForAI );
+            }
+            else {
+                numSkippedMessages += 1;
             }
         }
 
         minifiedChain.reverse();
-        // Return the array of minified messages
         return minifiedChain;
     }
 

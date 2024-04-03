@@ -1,6 +1,7 @@
 const { stringify } = require('yaml');
 const { formatDate } = require("./utilities.js");
 const { Action, actionClasses, TYPE_IN, REQUEST_USER_CLARIFICATION } = require("./actions.js");
+const { MAX_AI_MESSAGES } = require('./globals.js');
 
 const SYSTEM_ROLE = 'system';
 const USER_ROLE = 'user';
@@ -32,6 +33,7 @@ class AIMessage extends Message {
         this.actions = null;
         this.chatMessage = null;
         this.includesQuestion = false;
+        this.questionText = null;
 
         this.parseActionsAndMessage();
     }
@@ -73,6 +75,7 @@ class AIMessage extends Message {
 
         if (messages.length > 0 && (messages[messages.length - 1].includes("?") || messages[messages.length - 1].includes("please let") || messages[messages.length - 1].includes("Please let") || messages[messages.length - 1].includes("Let me know") || messages[messages.length - 1].includes("let me know") )) {
             this.includesQuestion = true;
+            this.questionText = messages[messages.length - 1];
             // actions.push({ action: REQUEST_USER_CLARIFICATION, actionText: messages[messages.length - 1] });
             // messages.pop();
         }
@@ -89,6 +92,23 @@ class AIMessage extends Message {
         // }
 
         this.chatMessage = messagesStr.trim();
+    }
+
+    getMessageForAI(messageIndex) {
+        if(messageIndex > MAX_AI_MESSAGES) {
+            if (this.includesQuestion && this.questionText) {
+                return {
+                    role: this.role,
+                    content: `TRUNCATED TO QUESTION ONLY:\n...\n${this.questionText}`
+                };
+            }
+            else {
+                return null;
+            }
+        }
+        else {
+            return super.getMessageForAI();
+        }
     }
 }
 
@@ -158,6 +178,10 @@ class AppMessage extends YAMLMessage {
     }
 
     getMessageForAI(messageIndex) {
+        if(messageIndex > MAX_AI_MESSAGES) {
+            return null;
+        }
+
         var text = this.fullMessage;
 
         var toDelete = [];
@@ -286,4 +310,4 @@ class SystemPrompt extends SystemMessage {
     }
 }
 
-module.exports = { UserMessage, AIMessage, AppMessage, SystemPrompt, SYSTEM_ROLE, USER_ROLE, ASSISTANT_ROLE };
+module.exports = { UserMessage, AIMessage, AppMessage, SystemPrompt, SystemMessage, SYSTEM_ROLE, USER_ROLE, ASSISTANT_ROLE };

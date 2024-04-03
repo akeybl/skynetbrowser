@@ -279,7 +279,7 @@ goto_url: https://www.google.com/`
     else if (newUserMessages.length == 0 && !aiResponse.includesQuestion) {
       const a = new Action();
 
-      var params = await a.execute(browserPage);;
+      var params = await a.execute(browserPage);
       params["Notice"] = "Your message was received by the user. Please continue your task by making a function call. Do not expect a response from the user. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests and require no further actions (like sleep/sleep_until for recurring events), call completed:.";
 
       appMessage = new AppMessage(params);
