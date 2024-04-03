@@ -39,7 +39,16 @@ class AIRequest {
 
             if (currMessage instanceof AppMessage) {
                 // Need to figure out how to do navigation changes
-                messageForAI = currMessage.getMessageForAI(appMessageIndex);
+                var nextAppMessage = null;
+
+                for (let j = i+1; j >= 0; j--) {
+                    if (this.messageChain[j] instanceof AppMessage) {
+                        nextAppMessage = this.messageChain[j];
+                        break;
+                    }
+                }
+
+                messageForAI = currMessage.getMessageForAI(appMessageIndex, nextAppMessage);
                 appMessageIndex += 1;
             }
             else if (currMessage instanceof AIMessage) {

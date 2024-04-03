@@ -34,6 +34,7 @@ class AIMessage extends Message {
         this.chatMessage = null;
         this.includesQuestion = false;
         this.questionText = null;
+        this.hasMarkdown = false;
 
         this.parseActionsAndMessage();
     }
@@ -90,6 +91,9 @@ class AIMessage extends Message {
         // else {
         //     this.chatMessage = "";
         // }
+
+        const markdownRegex = /\]\(|\*/g;
+        this.hasMarkdown = markdownRegex.test(messagesStr);
 
         this.chatMessage = messagesStr.trim();
     }
@@ -177,7 +181,7 @@ class AppMessage extends YAMLMessage {
         this.chatMessage = "";
     }
 
-    getMessageForAI(messageIndex) {
+    getMessageForAI(messageIndex, nextAppMessage = null) {
         if(messageIndex > MAX_AI_MESSAGES) {
             return null;
         }
@@ -188,7 +192,10 @@ class AppMessage extends YAMLMessage {
         var parsedOut = [];
 
         if (messageIndex > 1) {
-            toDelete.push("Page URL");
+            if (nextAppMessage && nextAppMessage.yamlParams["Page URL"] == this.yamlParams["Page URL"]) {
+                toDelete.push("Page URL");
+            }
+
             toDelete.push("Sent At");
             toDelete.push("Page Number");
         }
