@@ -192,6 +192,7 @@ class PageUpAction extends Action {
     async execute(browserPage) {
         console.log(`Paging up`);
         browserPage.textPage -= 1;
+        this.returnParams["Outcome"] = `${PAGE_UP} to page ${browserPage.textPage} complete.`;
         return await super.execute(browserPage);
     }
 }
@@ -200,6 +201,7 @@ class PageDownAction extends Action {
     async execute(browserPage) {
         console.log(`Paging down`);
         browserPage.textPage += 1;
+        this.returnParams["Outcome"] = `${PAGE_DOWN} to page ${browserPage.textPage} complete.`;
         return await super.execute(browserPage);
     }
 }

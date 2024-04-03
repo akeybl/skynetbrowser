@@ -16,23 +16,11 @@ class Message {
         this.chatMessage = fullMessage;
     }
 
-    getMinifiedFullMessage() {
-        return this.fullMessage;
-    }
-
-    getMessageForAI(minify = false) {
-        if ( minify ) {
-            return {
-                role: this.role,
-                content: this.getMinifiedFullMessage()
-            }
-        }
-        else {
-            return {
-                role: this.role,
-                content: this.fullMessage
-            }
-        }
+    getMessageForAI() {
+        return {
+            role: this.role,
+            content: this.fullMessage
+        };
     }
 }
 
@@ -61,13 +49,15 @@ class AIMessage extends Message {
             const separatorIndex = line.indexOf(": ");
 
             if (separatorIndex !== -1) {
-                const action = line.substring(0, separatorIndex).replace(/[\*`]/g, "").replace(/^>-*\s*/g, "");
-                const actionText = line.substring(separatorIndex + 2).replace(/[\*`]/g, "");
+                // const action = line.substring(0, separatorIndex).replace(/[\*`]/g, "").replace(/^>-*\s*/g, "");
+                const action = line.substring(0, separatorIndex).replace(/^>-*\s*/g, "");
+                // const actionText = line.substring(separatorIndex + 2).replace(/[\*`]/g, "");
+                const actionText = line.substring(separatorIndex + 2);
 
                 if (multiLineActions.includes(action)) {
                     // Concatenate the rest of the lines as the actionText for multiLineActions
                     var multilineText = actionText + lines.slice(i + 1).join("\n");
-                    multilineText = multilineText.replace(/[\*`]/g, "");
+                    // multilineText = multilineText.replace(/[\*`]/g, "");
 
                     actions.push(new (actionClasses[action] || Action)(action, multilineText));
                     break; // Assuming the rest of the input is the action text
@@ -92,11 +82,13 @@ class AIMessage extends Message {
         var messagesStr = messages.join("\n");
 
         // if (messagesStr.includes("*") || this.includesQuestion) {
-        this.chatMessage = messagesStr.replace(/\*/g, '').replace(">-", "").trim();
+        // this.chatMessage = messagesStr.replace(/\*/g, '').replace(">-", "").trim();
         // }
         // else {
         //     this.chatMessage = "";
         // }
+
+        this.chatMessage = messagesStr.trim();
     }
 }
 
@@ -120,22 +112,16 @@ class UserMessage extends YAMLMessage {
 
         this.chatMessage = userfullMessage;
     }
-}
 
-class AppMessage extends YAMLMessage {
-    constructor(yamlParams, date = null) {
-        const sentAtDate = date || new Date();
+    getMessageForAI(messageIndex) {
+        var text = this.fullMessage;
 
-        yamlParams["Sent At"] = formatDate(sentAtDate);
+        var toDelete = []
+        var parsedOut = [];
 
-        super(USER_ROLE, yamlParams, date);
-
-        this.chatMessage = "";
-    }
-
-    getMinifiedFullMessage() {
-        const toDelete = ["Page URL"]
-        const parsedOut = ["Page Text"];
+        if (messageIndex > 1) {
+            toDelete.push("Sent At");
+        }
 
         var minifiedParams = this.yamlParams;
     
@@ -150,8 +136,63 @@ class AppMessage extends YAMLMessage {
                 minifiedParams[key] = "REMOVED DUE TO TOKEN LIMITS";
             }
         });
+
+        text = stringify(minifiedParams);
     
-        return stringify(minifiedParams);
+        return {
+            role: this.role,
+            content: text
+        };
+    }
+}
+
+class AppMessage extends YAMLMessage {
+    constructor(yamlParams, date = null) {
+        const sentAtDate = date || new Date();
+
+        yamlParams["Sent At"] = formatDate(sentAtDate);
+
+        super(USER_ROLE, yamlParams, date);
+
+        this.chatMessage = "";
+    }
+
+    getMessageForAI(messageIndex) {
+        var text = this.fullMessage;
+
+        var toDelete = [];
+        var parsedOut = [];
+
+        if (messageIndex > 1) {
+            toDelete.push("Page URL");
+            toDelete.push("Sent At");
+            toDelete.push("Page Number");
+        }
+
+        if (messageIndex > 0) {
+            parsedOut.push("Page Text");
+        }
+
+        var minifiedParams = this.yamlParams;
+    
+        toDelete.forEach(key => {
+            if (minifiedParams.hasOwnProperty(key)) {
+                delete minifiedParams[key];
+            }
+        });
+
+        parsedOut.forEach(key => {
+            if (minifiedParams.hasOwnProperty(key)) {
+                minifiedParams[key] = "REMOVED DUE TO TOKEN LIMITS";
+            }
+        });
+
+        text = stringify(minifiedParams);
+    
+        return {
+            role: this.role,
+            content: text
+        };
     }
 }
 

@@ -1,6 +1,6 @@
 const OpenAI = require("openai");
 const { MODEL, MAX_WRITE_TOKENS, OPENAI_KEY, OPENROUTER_API_KEY } = require('./globals.js');
-const { AIMessage, AppMessage } = require('./chain-messages.js');
+const { AIMessage, AppMessage, UserMessage, SystemPrompt } = require('./chain-messages.js');
 const { delay } = require('./utilities.js');
 
 const openAIClient = new OpenAI({
@@ -27,25 +27,35 @@ class AIRequest {
         // Initialize the array to store the minified messages
         const minifiedChain = [];
 
-        // Find the index of the last AppMessage in the messageChain
-        let lastAppMessageIndex = -1;
+        var appMessageIndex = 0;
+        var userMessageIndex = 0;
+
+        var numSkippedMessages = 0;
+
         for (let i = this.messageChain.length - 1; i >= 0; i--) {
-            if (this.messageChain[i] instanceof AppMessage) {
-                lastAppMessageIndex = i;
-                break;
+            const currMessage = this.messageChain[i];
+
+            if (currMessage instanceof AppMessage) {
+                // Need to figure out how to do navigation changes
+                minifiedChain.push( currMessage.getMessageForAI(appMessageIndex) );
+                appMessageIndex += 1;
+            }
+            else if (currMessage instanceof AIMessage) {
+                minifiedChain.push( currMessage.getMessageForAI() );
+            }
+            else if (currMessage instanceof UserMessage) {
+                minifiedChain.push( currMessage.getMessageForAI(userMessageIndex) );
+                userMessageIndex += 1;
+            }
+            else if (currMessage instanceof SystemPrompt ) {
+                minifiedChain.push( currMessage.getMessageForAI() );
+            }
+            else {
+                minifiedChain.push( currMessage.getMessageForAI() );
             }
         }
 
-        // Iterate over the messageChain
-        this.messageChain.forEach((message, index) => {
-            // Use getMessageForAI(false) for the last AppMessage, getMessageForAI(true) for the others
-            if (index === lastAppMessageIndex) {
-                minifiedChain.push(message.getMessageForAI(false));
-            } else {
-                minifiedChain.push(message.getMessageForAI(true));
-            }
-        });
-
+        minifiedChain.reverse();
         // Return the array of minified messages
         return minifiedChain;
     }
