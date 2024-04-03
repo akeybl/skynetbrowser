@@ -33,9 +33,10 @@ async function clickElement(page, cursor, element) {
     // await page.mouse.move(insideX, insideY);
 
     await randomDelay(30, 200);
-    await page.mouse.click(insideX, insideY);
 
     // await cursor.click(element)
+    // await page.mouse.click(insideX, insideY);
+    await element.click();
 }
 
 async function keyboardType(page, text) {
@@ -112,54 +113,33 @@ async function getAriaElement(client, page, cursor, label) {
     }
 }
 
-// async function mapNameToElements(node) { //, visibleOnly = false) {
-//     // Initialize an empty map
-//     let map = {};
-  
-//     function traverse(node) {
-//         if (!node) return;
-  
-//         // Use name.value as key and push the current node's element into the array
-//         const nameValue = node.name?.value.trim();
-//         if (nameValue && nameValue != "") {
-//             if (!map[nameValue]) {
-//                 map[nameValue] = [];
-//             }
-//             map[nameValue].push(node.element);
-//         }
-  
-//         // If the node has children, traverse them recursively
-//         if (node.children && node.children.length > 0) {
-//             node.children.forEach(child => {
-//                 traverse(child);
-//             });
-//         }
-//     }
-  
-//     traverse(node); // Start the traversal from the root node
-  
-//     return map;
-//   }  
-
 async function clickClosestAriaName(client, page, cursor, label) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
     var nameToElementsMap = await mapNameToElements(nodeTree);
     // console.log(nameToElementsMap);
 
+    var elementIndex = 0;
+    const regex = /#(\d+)#/;
+    const match = label.match(regex);
+
+    if (match) {
+        elementIndex = parseInt(match[1], 10) - 1;
+    }
+
     const items = Object.entries(nameToElementsMap).map(([key, value]) => ({ key, value }));
 
     const fuse = new Fuse(items, {
         keys: ['key'], // specify the property to search against
         includeScore: true // include the search score in the result
-      });
-        
+    });
+
     // Search for the closest key
     const result = fuse.search(label);
-    
+
     if (result.length > 0) {
         console.log('Closest match:', result[0].item.key, 'with score:', result[0].score);
-        const element = nameToElementsMap[result[0].item.key][0];
+        const element = nameToElementsMap[result[0].item.key][elementIndex];
         await clickElement(page, cursor, element);
     } else {
         throw new Error("No match found for ${label}");
@@ -237,6 +217,17 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
         }
     }
 
+    if (interactive.includes(nodeClone.role.value) || nodeClone.role.value == "image") {
+        if (!nodeClone.name) {
+            nodeClone.name = {};
+        }
+
+        nodeClone.name.value = getFullNodeText(nodeClone).join(" ").trim();
+        // console.log(nodeClone.name.value);
+
+        nodeClone.children = [];
+    }
+
     return nodeClone;
 }
 
@@ -266,38 +257,25 @@ async function getChildFrames(frames, frame) {
 }
 
 async function mapNameToElements(node) {
-    const skippedRoles = ["none", "generic"];
     let map = {};
 
     function traverse(node) {
         if (!node) return;
 
-        var isInteractive = false;
-
-        if(!skippedRoles.includes(node.role.value)) {
+        if (interactive.includes(node.role.value) && node.element != null && node.element != {}) {
             var key = `${node.role.value}: ${node.name?.value.trim()}`;
 
-            if (node.role && node.role.value && interactive.includes(node.role.value)) {
-                isInteractive = true;
-                const textLines = getFullNodeText(node);
-                key = `${node.role.value}: ${textLines.join(" ").trim()}`;
+            if (!map[key]) {
+                map[key] = [];
             }
-
-            if (key && key != "") {
-                if (!map[key]) {
-                    map[key] = [];
-                }
-                map[key].push(node.element);
-            }
+            map[key].push(node.element);
         }
 
-        if (!isInteractive) {
-            // If the node has children, traverse them recursively
-            if (node.children && node.children.length > 0) {
-                node.children.forEach(child => {
-                    traverse(child);
-                });
-            }
+        // If the node has children, traverse them recursively
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                traverse(child);
+            });
         }
     }
 
@@ -309,28 +287,73 @@ async function mapNameToElements(node) {
 async function getAriaElementsText(client, page) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
-    return await getTreeText(nodeTree, 0);
+    var treeText = await getTreeText(nodeTree, 0);
+
+    let counts = {};
+
+    const addNumberToRepeatingStrings = (array) => {
+        // First pass to count occurrences and store indices
+        array.forEach((item, index) => {
+            let matches = item.match(/{([^:]+):\s*(.*)}/);
+            if (matches) {
+                let identifier = `${matches[1]}: ${matches[2]}`;
+                if (!counts[identifier]) {
+                    counts[identifier] = { count: 1, indices: [index] };
+                } else {
+                    counts[identifier].count++;
+                    counts[identifier].indices.push(index);
+                }
+            }
+        });
+    
+        // Second pass to number items based on counts and indices
+        return array.map((item, index) => {
+            let matches = item.match(/{([^:]+):\s*(.*)}/);
+            if (matches) {
+                let identifier = `${matches[1]}: ${matches[2]}`;
+                if (counts[identifier].count > 1) {
+                    // Find the index of this occurrence
+                    let occurrenceIndex = counts[identifier].indices.indexOf(index) + 1; // +1 to make it human-readable (1-based indexing)
+                    if (matches[2] == "") {
+                        return `{${matches[1]}: #${occurrenceIndex}#}`;
+                    }
+                    else {
+                        return `{${matches[1]}: ${matches[2]} #${occurrenceIndex}#}`;
+                    }
+                }
+            }
+            return item; // Return the original item if it's not repeated
+        });
+    };
+    
+    const treeTextWithNumbers = addNumberToRepeatingStrings(treeText);
+    
+    return treeTextWithNumbers.join("");
 }
 
 function getFullNodeText(node) {
     var nodeTextArray = [];
 
-    if(node.name && node.name.value) {
+    if (node.name && node.name.value) {
         nodeTextArray.push(node.name.value);
         // console.log(`XXX: ${node.name.value}`);
     }
 
     for (let childNode of node.children) {
         const childNodeTextArray = getFullNodeText(childNode);
-        nodeTextArray.push(...childNodeTextArray);
+        nodeTextArray = nodeTextArray.concat(childNodeTextArray);
     }
 
     const uniqueArray = [...new Set(nodeTextArray)];
     return uniqueArray;
 }
 
+async function getTreeTextWithNumbers(node) {
+    
+}
+
 async function getTreeText(node, level) {
-    var fullText = "";
+    var fullTextArray = [];
 
     const editable = ["searchbox", "combobox", "textbox"];
     const checkable = ["checkbox", "menuitemcheckbox", "radio", "switch"];
@@ -380,23 +403,12 @@ async function getTreeText(node, level) {
                     }
                 }
 
-                // var nodeNameValue = "unnamed";
-                // if (node.name && node.name.value) {
-                //     nodeNameValue = node.name.value;
-                // }
-
-                const textLines = getFullNodeText(node);
-                const nodeNameValue = textLines.join(" ");
-
-                // if (nodeNameValue.trim() != "") {
-                // fullText += `${" ".repeat(level+1)}{${focusStr}${node.role.value}: ${nodeNameValue}}${editableValueStr}\n`;
-                fullText += `{${focusStr}${node.role.value}: ${nodeNameValue}}${editableValueStr}\n`;
-                // }
+                fullTextArray.push(`{${focusStr}${node.role.value}: ${node.name.value}}${editableValueStr}\n`);
             }
             else {
                 for (let childNode of node.children) {
-                    fullText += await getTreeText(childNode, level );
-                }    
+                    fullTextArray = fullTextArray.concat(await getTreeText(childNode, level));
+                }
             }
         }
         else {
@@ -404,23 +416,6 @@ async function getTreeText(node, level) {
 
             if (node.role.value == "RootWebArea") {
                 text = `# START ${node.name.value}`;
-            }
-            else if (node.role.value == "image") {
-                // XXX: node.name.value isn't always available (see google.com)
-
-                var nodeNameValue = "";
-
-                if (node.name && node.name.value) {
-                    nodeNameValue = node.name.value;
-                }
-                else {
-                    const textLines = getFullNodeText(node);
-                    nodeNameValue = textLines.join(" ");
-                }
-
-                if (nodeNameValue.trim() != "") {
-                    text = `<image: ${nodeNameValue}>`;
-                }
             }
             else if (node.role.value == "heading") {
                 var heading_level = 1;
@@ -440,50 +435,25 @@ async function getTreeText(node, level) {
 
             if (text.trim() != "") {
                 // fullText += `${" ".repeat(level+1)}${text}\n`;
-                fullText += `${text}\n`;
+                fullTextArray.push(`${text}\n`);
             }
 
             for (let childNode of node.children) {
-                fullText += await getTreeText(childNode, level + 1);
+                fullTextArray = fullTextArray.concat(await getTreeText(childNode, level + 1));
             }
 
             if (node.role.value == "RootWebArea") {
-                fullText += `# END ${node.name.value}\n`;
+                fullTextArray.push(`# END ${node.name.value}\n`);
             }
         }
     }
     else {
         for (let childNode of node.children) {
-            fullText += await getTreeText(childNode, level);
-        }    
+            fullTextArray = fullTextArray.concat(await getTreeText(childNode, level));
+        }
     }
 
-    return fullText;
+    return fullTextArray;
 }
-
-// async function getAllFrames(page) {
-//     var frames = [];
-
-//     for (let frame of page.frames()) {
-//         await getChildFrames(frames, frame);
-//     }
-
-//     frameIdToFrame = frames.reduce((acc, item) => {
-//         acc[item._id] = item;
-//         return acc;
-//     }, {});
-
-//     return frameIdToFrame;
-// }
-
-// async function getChildFrames(frames, frame) {
-//     if (!frames.includes(frame)) {
-//         frames.push(frame);
-//     }
-
-//     for (let childFrame of frame.childFrames()) {
-//         await getChildFrames(frames, childFrame);
-//     }
-// }
 
 module.exports = { clickElement, clickExactAriaName, getAriaElement, keyboardPress, keyboardType, selectAll, getAriaElementsText, clickClosestAriaName };

@@ -1,12 +1,7 @@
 window.onload = function () {
     document.getElementById('message-input').focus();
     window.electronAPI.resetMessages();
-    setSpinner(false);
 };
-
-document.addEventListener("DOMContentLoaded", function(event){
-    setSpinner(false);
-  });  
 
 window.electronAPI.loadUrl((event, url) => {
     console.log(`load-url: ${url}`);
@@ -102,5 +97,5 @@ function setSpinner(isVisible) {
     messageContainer.scrollTop = messageContainer.scrollHeight;
 }
 
-displayMessages();
 setSpinner(false);
+displayMessages();

@@ -170,7 +170,7 @@ button {
 
 /* Spinner Styles */
 .spinner-container {
-  display: flex; /* Use flexbox to center the spinner */
+  display: none; /* Use flexbox to center the spinner */
   justify-content: center; /* Center horizontally in the flex container */
   align-items: center; /* Center vertically in the flex container */
   padding: 10px; /* Add some padding around the spinner */

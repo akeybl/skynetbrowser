@@ -53,7 +53,7 @@ puppeteer.use(AdblockerPlugin({
 const { createBrowserPage } = require("./browser-page.js");
 const { delay, ttokTruncate } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
-const { UserMessage, AppMessage, SystemPrompt, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
+const { UserMessage, AppMessage, SystemPrompt, AIMessage, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
 const { Action, REQUEST_USER_INTERVENTION, COMPLETED } = require("./actions.js");
@@ -181,7 +181,22 @@ async function main() {
 
   await browserPage.page.goto("https://www.google.com/");
   
-  let messageChain = [new SystemPrompt("Alex", "Virginia")];
+  let messageChain = [
+    new SystemPrompt("Alex", "Virginia"), 
+    new AIMessage( {
+      choices: [
+        { message: {
+            content: `I will prepare for your request by going to Google, which is many times a good starting point.
+
+goto_url: https://www.google.com/`
+          }
+        }
+      ],
+      usage: {
+        prompt_tokens: 0,
+        completion_tokens: 0
+      }
+    } ) ];
   let newUserMessages = [];
 
   ipcMain.on('reset-messages', (event) => {
@@ -222,7 +237,7 @@ async function main() {
     goAgain = false
 
     // console.log(messageChain.length);
-    if (messageChain.length == 1) {
+    if (messageChain.length == 2) {
       const act = new Action();
       var params = await act.execute(browserPage);;
       const am = new AppMessage(params);
@@ -265,7 +280,7 @@ async function main() {
       const a = new Action();
 
       var params = a.execute(browserPage);;
-      params["Notice"] = "No function calls made. Your message was received by the user. Do not expect a response from the user. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests, or there request is not possible due to moderation/capability, call completed:.";
+      params["Notice"] = " Your message was received by the user. Please continue your task by making a function call. Do not expect a response from the user. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests and require no further actions (like sleep/sleep_until for recurring events), call completed:.";
 
       appMessage = new AppMessage(params);
       messageChain.push(appMessage);
