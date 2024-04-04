@@ -10,6 +10,7 @@ class HistoryEntry {
         this.date = new Date();
         this.url = url;
         this.inPage = inPage;
+        this.includeURLs = false;
 
         console.log('Navigated to:', url);
     }
@@ -104,7 +105,7 @@ class BrowserPage {
     }
 
     async getPageText() {
-        return await getAriaElementsText(this.client, this.page);
+        return await getAriaElementsText(this.client, this.page, this.includeURLs);
     }
 
     async clickClosestText(text) {

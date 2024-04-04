@@ -151,13 +151,13 @@ async function clickClosestAriaName(client, page, cursor, label) {
     if (result.length > 0) {
         console.log('Closest match:', result[0].item.key, 'with score:', result[0].score);
 
-        // if (result[0].score < 0.1) {
-        const element = nameToElementsMap[result[0].item.key][elementIndex];
-        await clickElement(page, cursor, element);    
-        // }
-        // else {
-        //     throw new Error(`Score below threshold`);
-        // }
+        if (result[0].score < 0.5) {
+            const element = nameToElementsMap[result[0].item.key][elementIndex];
+            await clickElement(page, cursor, element);    
+        }
+        else {
+            throw new Error(`Score below threshold`);
+        }
     } else {
         throw new Error(`No match found for ${label}`);
     }
@@ -303,10 +303,10 @@ async function mapNameToElements(node) {
     return map;
 }
 
-async function getAriaElementsText(client, page) {
+async function getAriaElementsText(client, page, includeURLs) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
-    var treeText = await getTreeText(nodeTree, 0);
+    var treeText = await getTreeText(nodeTree, 0, includeURLs);
 
     let counts = {};
 
@@ -377,7 +377,7 @@ function getFullNodeText(node) {
     return uniqueArray;
 }
 
-async function getTreeText(node, level) {
+async function getTreeText(node, level, includeURLs) {
     var fullTextArray = [];
 
     const editable = ["searchbox", "combobox", "textbox"];
@@ -389,7 +389,7 @@ async function getTreeText(node, level) {
         if (hasURL.includes(node.role.value)) {
             let href = await node.element.evaluate(el => el.getAttribute('href'));
 
-            if (href) {
+            if (href && includeURLs) {
                 href = href.replace("https://www.", "");
                 href = href.replace("http://www.", "");
                 href = href.replace("https://", "");
@@ -452,7 +452,7 @@ async function getTreeText(node, level) {
             }
             else {
                 for (let childNode of node.children) {
-                    fullTextArray = fullTextArray.concat(await getTreeText(childNode, level));
+                    fullTextArray = fullTextArray.concat(await getTreeText(childNode, level, includeURLs));
                 }
             }
         }
@@ -484,7 +484,7 @@ async function getTreeText(node, level) {
             }
 
             for (let childNode of node.children) {
-                fullTextArray = fullTextArray.concat(await getTreeText(childNode, level + 1));
+                fullTextArray = fullTextArray.concat(await getTreeText(childNode, level + 1, includeURLs));
             }
 
             if (node.role.value == "RootWebArea") {
@@ -494,7 +494,7 @@ async function getTreeText(node, level) {
     }
     else {
         for (let childNode of node.children) {
-            fullTextArray = fullTextArray.concat(await getTreeText(childNode, level));
+            fullTextArray = fullTextArray.concat(await getTreeText(childNode, level, includeURLs));
         }
     }
 

@@ -48,6 +48,13 @@ class Action {
 
         this.returnParams[`Page Text`] = this.pageTextAfterExecute;
 
+        if( browserPage.includeURLs ) {
+            this.returnParams[`Current Mode`] = "Extraction";
+        }
+        else {
+            this.returnParams[`Current Mode`] = "Interaction";
+        }
+
         // console.log(this.returnParams[`Page Text for Current URL`]);
 
         return this.returnParams;
@@ -57,6 +64,10 @@ class Action {
 class GotoUrlAction extends Action {
     async execute(browserPage) {
         console.log(`Going to URL: ${this.actionText}`);
+
+        if (browserPage.includeURLs) {
+            browserPage.includeURLs = false;
+        }
 
         if (!isValidUrl(this.actionText)) {
             this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
@@ -79,6 +90,10 @@ class GoBackAction extends Action {
     async execute(browserPage) {
         console.log(`Going back in browser history`);
 
+        if (browserPage.includeURLs) {
+            browserPage.includeURLs = false;
+        }
+
         await browserPage.page.goBack();
 
         this.returnParams["Outcome"] = `${GO_BACK} operation complete.`;
@@ -92,6 +107,10 @@ class GoBackAction extends Action {
 class GoForwardAction extends Action {
     async execute(browserPage) {
         console.log(`Going forward in browser history`);
+
+        if (browserPage.includeURLs) {
+            browserPage.includeURLs = false;
+        }
 
         await browserPage.page.goForward();
 
@@ -121,6 +140,10 @@ class ClickOnAction extends Action {
     async execute(browserPage) {
         console.log(`Clicking on: ${this.actionText}`);
 
+        if (browserPage.includeURLs) {
+            browserPage.includeURLs = false;
+        }
+
         try {
             await browserPage.clickClosestText(this.actionText);
             this.returnParams["Outcome"] = `${CLICK_ON} operation complete.`;
@@ -139,6 +162,10 @@ class ClickOnAction extends Action {
 class TypeInAction extends Action {
     async execute(browserPage) {
         console.log(`Typing in: ${this.actionText}`);
+
+        if (browserPage.includeURLs) {
+            browserPage.includeURLs = false;
+        }
 
         await browserPage.typeIn(this.actionText);
         
@@ -218,6 +245,16 @@ class PageDownAction extends Action {
     }
 }
 
+class ChangeModeAction extends Action {
+    async execute(browserPage) {
+        console.log(`Changing modes`);
+
+        browserPage.includeURLs = !browserPage.includeURLs;
+
+        return await super.execute(browserPage);
+    }
+}
+
 let actionClasses = {};
 
 const GOTO_URL = "goto_url";
@@ -256,4 +293,7 @@ actionClasses[COMPLETED] = CompletedAction;
 const TYPE_IN = "type_in";
 actionClasses[TYPE_IN] = TypeInAction;
 
-module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, PageUpAction, PageDownAction, SleepAction, SleepUntilAction, TypeInAction, CompletedAction, RequestUserInterventionAction, TYPE_IN, actionClasses };
+const CHANGE_MODE = "change_mode";
+actionClasses[CHANGE_MODE] = ChangeModeAction;
+
+module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, PageUpAction, PageDownAction, SleepAction, SleepUntilAction, TypeInAction, CompletedAction, RequestUserInterventionAction, ChangeModeAction, TYPE_IN, actionClasses };

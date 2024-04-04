@@ -7,6 +7,7 @@ PAGE_TOKEN_LENGTH = 1000;
 MAX_AI_MESSAGES = 5;
 
 // gpt-3.5-turbo-0125, gpt-4, gpt-4-0125-preview, gpt-4-1106-preview, gpt-4-1106-vision-preview
+
 // MODEL = "gpt-4";
 // MAX_WRITE_TOKENS = 500;
 // PROMPT_COST = 30/1000000;
