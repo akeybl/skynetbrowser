@@ -117,7 +117,7 @@ async function clickClosestAriaName(client, page, cursor, label) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
     var nameToElementsMap = await mapNameToElements(nodeTree);
-    // console.log(nameToElementsMap);
+    console.log(nameToElementsMap);
 
     var elementIndex = 0;
     const regex = /#(\d+)#/;
@@ -151,13 +151,13 @@ async function clickClosestAriaName(client, page, cursor, label) {
     if (result.length > 0) {
         console.log('Closest match:', result[0].item.key, 'with score:', result[0].score);
 
-        if (result[0].score < 0.1) {
-            const element = nameToElementsMap[result[0].item.key][elementIndex];
-            await clickElement(page, cursor, element);    
-        }
-        else {
-            throw new Error(`Score below threshold`);
-        }
+        // if (result[0].score < 0.1) {
+        const element = nameToElementsMap[result[0].item.key][elementIndex];
+        await clickElement(page, cursor, element);    
+        // }
+        // else {
+        //     throw new Error(`Score below threshold`);
+        // }
     } else {
         throw new Error(`No match found for ${label}`);
     }
