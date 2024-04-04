@@ -21,6 +21,7 @@ class AIRequest {
     constructor(abortController, messageChain) {
         this.messageChain = messageChain;
         this.controller = abortController;
+        this.response = null;
     }
 
     getMinifiedChain() {
@@ -73,7 +74,7 @@ class AIRequest {
             }
             else if ( messageForAI ) {
                 if (numSkippedMessages > 0 ) {
-                    const sm = new SystemMessage({"Notice": `Skipped ${numSkippedMessages} due to message chain length requirements`});
+                    const sm = new SystemMessage({"Notice": `Truncated ${numSkippedMessages} messages`});
                     minifiedChain.push( sm.getMessageForAI() );
                     numSkippedMessages = 0;
                 }
@@ -102,14 +103,14 @@ class AIRequest {
 
     async getOpenAIResult() {
         try {
-            const response = await openAIClient.chat.completions.create({
+            this.response = await openAIClient.chat.completions.create({
                 model: MODEL,
                 max_tokens: MAX_WRITE_TOKENS,
                 messages: this.getMinifiedChain(),
             },
                 { signal: this.controller.signal });
 
-            return new AIMessage(response);
+            return new AIMessage(this.response);
         } catch (error) {
             if (error.name === 'AbortError') {
                 console.log('Request was cancelled');
@@ -123,17 +124,15 @@ class AIRequest {
 
     async getOpenRouterResult() {
         try {
-            var response = null;
-
             while (true) {
-                response = await openRouterClient.chat.completions.create({
+                this.response = await openRouterClient.chat.completions.create({
                     model: MODEL,
                     max_tokens: MAX_WRITE_TOKENS,
                     messages: this.getMinifiedChain(),
                 },
                     { signal: this.controller.signal });
 
-                if (response && response.choices && response.choices.length > 0) {
+                if (this.response && this.response.choices && this.response.choices.length > 0) {
                     break;
                 }
                 else {

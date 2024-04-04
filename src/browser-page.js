@@ -10,7 +10,6 @@ class HistoryEntry {
         this.date = new Date();
         this.url = url;
         this.inPage = inPage;
-        this.includeURLs = false;
 
         console.log('Navigated to:', url);
     }
@@ -31,6 +30,8 @@ class BrowserPage {
         this.pageHistory = [];
 
         this.textPage = 1;
+
+        this.includeURLs = false;
 
         var partition = "";
         if (partitioned) {
@@ -105,6 +106,9 @@ class BrowserPage {
     }
 
     async getPageText() {
+        // console.log("XXX");
+        // console.log(this.includeURLs);
+        console.log(await getAriaElementsText(this.client, this.page, true));
         return await getAriaElementsText(this.client, this.page, this.includeURLs);
     }
 

@@ -31,31 +31,25 @@ class Action {
         this.returnParams[`Page URL`] = pageURL;
 
         this.fullTextAfterExecute = await browserPage.getPageText();
+
+        // console.log(this.fullTextAfterExecute)
+
         const tokenLength = await ttokLength(this.fullTextAfterExecute);
         const fullTextPages = Math.ceil( tokenLength / PAGE_TOKEN_LENGTH );
         this.returnParams["Page Number"] = `${browserPage.textPage}/${fullTextPages}`;
         this.pageTextAfterExecute = "";
 
         if (browserPage.textPage > 1) {
-            this.pageTextAfterExecute += "# ^ TRUNCATED, USE page_up FOR MORE\n";
+            this.pageTextAfterExecute += "# ^ TRUNCATED, CALL page_up FOR MORE\n";
         }
 
         this.pageTextAfterExecute += await ttokTruncate(this.fullTextAfterExecute, PAGE_TOKEN_LENGTH * (browserPage.textPage-1), PAGE_TOKEN_LENGTH * browserPage.textPage);
 
         if ( browserPage.textPage != fullTextPages ) {
-            this.pageTextAfterExecute += "\n# v TRUNCATED, USE page_down FOR MORE"
+            this.pageTextAfterExecute += "\n# v TRUNCATED, CALL page_down FOR MORE"
         }
 
         this.returnParams[`Page Text`] = this.pageTextAfterExecute;
-
-        if( browserPage.includeURLs ) {
-            this.returnParams[`Current Mode`] = "Extraction";
-        }
-        else {
-            this.returnParams[`Current Mode`] = "Interaction";
-        }
-
-        // console.log(this.returnParams[`Page Text for Current URL`]);
 
         return this.returnParams;
     }
@@ -65,17 +59,22 @@ class GotoUrlAction extends Action {
     async execute(browserPage) {
         console.log(`Going to URL: ${this.actionText}`);
 
-        if (browserPage.includeURLs) {
-            browserPage.includeURLs = false;
+        // if (browserPage.includeURLs) {
+        //     browserPage.includeURLs = false;
+        // }
+
+        let url = this.actionText;
+        if(this.actionText.indexOf("http") != 0) {
+            url = "https://" + this.actionText;
         }
 
-        if (!isValidUrl(this.actionText)) {
+        if (!isValidUrl(url)) {
             this.returnParams["Error"] = `Could not perform ${GOTO_URL}, invalid URL provided.`;
             return await super.execute();
         }
 
         try {
-            await browserPage.page.goto(this.actionText, {timeout: 10000});
+            await browserPage.page.goto(url, {timeout: 10000});
         } catch (error) {
             console.log(`Error: ${error}`);
         }
@@ -90,9 +89,9 @@ class GoBackAction extends Action {
     async execute(browserPage) {
         console.log(`Going back in browser history`);
 
-        if (browserPage.includeURLs) {
-            browserPage.includeURLs = false;
-        }
+        // if (browserPage.includeURLs) {
+        //     browserPage.includeURLs = false;
+        // }
 
         await browserPage.page.goBack();
 
@@ -108,9 +107,9 @@ class GoForwardAction extends Action {
     async execute(browserPage) {
         console.log(`Going forward in browser history`);
 
-        if (browserPage.includeURLs) {
-            browserPage.includeURLs = false;
-        }
+        // if (browserPage.includeURLs) {
+        //     browserPage.includeURLs = false;
+        // }
 
         await browserPage.page.goForward();
 
@@ -140,9 +139,9 @@ class ClickOnAction extends Action {
     async execute(browserPage) {
         console.log(`Clicking on: ${this.actionText}`);
 
-        if (browserPage.includeURLs) {
-            browserPage.includeURLs = false;
-        }
+        // if (browserPage.includeURLs) {
+        //     browserPage.includeURLs = false;
+        // }
 
         try {
             await browserPage.clickClosestText(this.actionText);
@@ -163,9 +162,9 @@ class TypeInAction extends Action {
     async execute(browserPage) {
         console.log(`Typing in: ${this.actionText}`);
 
-        if (browserPage.includeURLs) {
-            browserPage.includeURLs = false;
-        }
+        // if (browserPage.includeURLs) {
+        //     browserPage.includeURLs = false;
+        // }
 
         await browserPage.typeIn(this.actionText);
         
@@ -245,11 +244,15 @@ class PageDownAction extends Action {
     }
 }
 
-class ChangeModeAction extends Action {
-    async execute(browserPage) {
-        console.log(`Changing modes`);
 
-        browserPage.includeURLs = !browserPage.includeURLs;
+class FindInPageAction extends Action {
+    constructor(action, actionText) {
+        super(action, actionText);
+        this.blocking = true;
+    }
+
+    async execute(browserPage) {
+        console.log(`Finding in page (blocking)`);
 
         return await super.execute(browserPage);
     }
@@ -293,7 +296,7 @@ actionClasses[COMPLETED] = CompletedAction;
 const TYPE_IN = "type_in";
 actionClasses[TYPE_IN] = TypeInAction;
 
-const CHANGE_MODE = "change_mode";
-actionClasses[CHANGE_MODE] = ChangeModeAction;
+const FIND_IN_PAGE = "find_in_page";
+actionClasses[FIND_IN_PAGE] = FindInPageAction;
 
-module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, PageUpAction, PageDownAction, SleepAction, SleepUntilAction, TypeInAction, CompletedAction, RequestUserInterventionAction, ChangeModeAction, TYPE_IN, actionClasses };
+module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, PageUpAction, PageDownAction, SleepAction, SleepUntilAction, TypeInAction, CompletedAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction };

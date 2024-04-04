@@ -51,7 +51,7 @@ puppeteer.use(AdblockerPlugin({
 }));
 
 const { createBrowserPage } = require("./browser-page.js");
-const { delay, ttokTruncate } = require("./utilities.js");
+const { delay, hasQuestion } = require("./utilities.js");
 const { clearSessions } = require("./data-store.js");
 const { UserMessage, AppMessage, SystemPrompt, AIMessage, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
@@ -248,13 +248,14 @@ goto_url: https://www.google.com/`
     newUserMessages = [];
     
     const request = new AIRequest(abortController, messageChain);
-    var aiResponse = await request.getResult(browserPage);
+    var aiResponse = await request.getResult();
 
     if (!aiResponse) {
       continue;
     }
 
     console.log(`Got AI response: ${aiResponse.fullMessage}`);
+
     sendMessageToRenderer(mainWindow, aiResponse);
 
     var appMessage = null;
@@ -268,7 +269,14 @@ goto_url: https://www.google.com/`
 
       const params = Object.assign({}, appMessageParams, await aiResponse.actions[0].execute(browserPage));
       appMessage = new AppMessage(params);
+
+      // if (aiResponse.actions[0] instanceof CompletedAction) {
+      //   browserPage.includeURLs = false;
+      // }
     }
+    // else {
+    //   browserPage.includeURLs = false;
+    // }
 
     messageChain.push(aiResponse);
     setPriceInWindow(mainWindow, messageChain)
@@ -278,8 +286,8 @@ goto_url: https://www.google.com/`
     }
     else if (newUserMessages.length == 0 && !aiResponse.includesQuestion) {
       const a = new Action();
-
       var params = await a.execute(browserPage);
+
       params["Notice"] = "Your message was received by the user. Do not expect a response from the user. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests and require no further actions (like sleep/sleep_until for recurring events), call completed:. If your tasks are not done, you must continue by making a function call.";
 
       appMessage = new AppMessage(params);

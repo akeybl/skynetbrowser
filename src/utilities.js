@@ -87,4 +87,20 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate, ttokLength };
+function hasQuestion(string) {
+    let lines = string.split('\n');
+
+    // Check if the last line exists and meets any of the specified conditions
+    if (lines.length > 0) {
+        const lastLine = lines[lines.length - 1];
+        if (lastLine.includes('?') ||
+            lastLine.toLowerCase().includes('please let') ||
+            lastLine.toLowerCase().includes('let me')) {
+                return true;
+        }
+    }
+
+    return false;
+}
+
+module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate, ttokLength, hasQuestion };
