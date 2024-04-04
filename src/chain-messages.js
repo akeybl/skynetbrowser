@@ -273,9 +273,10 @@ class SystemPrompt extends SystemMessage {
                 "When monitoring, ask the user a question to determine frequency if not already clear from their original request",
             ],
             "Function Calls": [
+                "goto_url: full valid URL",
+                "find_in_page: what you're looking for",
                 "page_up: reason to get previous page of text",
                 "page_down: reason to get next page of text",
-                "goto_url: full valid URL",
                 "reload: reason for reload",
                 "go_back: reason to go back",
                 "go_forward: reason to go forward",
@@ -285,7 +286,6 @@ class SystemPrompt extends SystemMessage {
                 "sleep: number of seconds until next action should occur",
                 "sleep_until: date and time",
                 "completed: reason for thinking ALL requested tasks are completed",
-                "find_in_page: what you're looking for"
             ],
             "How To Make Function Calls": [
                 "Each of your messages can contain at most ONE function call, any additional function calls will be ignored",
