@@ -206,41 +206,42 @@ class PageDownAction extends Action {
     }
 }
 
-// class RequestUserClarificationAction extends Action {
-//     execute() {
-//         console.log(`Requesting user clarification: ${this.actionText}`);
-//     }
-// }
+let actionClasses = {};
 
 const GOTO_URL = "goto_url";
+actionClasses[GOTO_URL] = GotoUrlAction;
+
 const GO_BACK = "go_back";
+actionClasses[GO_BACK] = GoBackAction;
+
 const GO_FORWARD = "go_forward";
+actionClasses[GO_FORWARD] = GoForwardAction;
+
 const RELOAD = "reload";
+actionClasses[RELOAD] = ReloadAction;
+
 const CLICK_ON = "click_on";
+actionClasses[CLICK_ON] = ClickOnAction;
+
 const PAGE_UP = "page_up";
+actionClasses[PAGE_UP] = PageUpAction;
+
 const PAGE_DOWN = "page_down";
+actionClasses[PAGE_DOWN] = PageDownAction;
+
 const SLEEP = "sleep";
+actionClasses[SLEEP] = SleepAction;
+
 const SLEEP_UNTIL = "sleep_until";
+actionClasses[SLEEP_UNTIL] = SleepUntilAction;
+
 const REQUEST_USER_INTERVENTION = "request_user_intervention";
+actionClasses[REQUEST_USER_INTERVENTION] = RequestUserInterventionAction;
+
 const COMPLETED = "completed";
+actionClasses[COMPLETED] = CompletedAction;
+
 const TYPE_IN = "type_in";
-// const REQUEST_USER_CLARIFICATION = "request_user_clarification";
+actionClasses[TYPE_IN] = TypeInAction;
 
-const actionClasses = {
-    goto_url: GotoUrlAction,
-    go_back: GoBackAction,
-    go_forward: GoForwardAction,
-    reload: ReloadAction,
-    click_on: ClickOnAction,
-    type_in: TypeInAction,
-    page_up: PageUpAction,
-    page_down: PageDownAction,
-    sleep: SleepAction,
-    sleep_until: SleepUntilAction,
-    type_in: TypeInAction,
-    completed: CompletedAction,
-    request_user_intervention: RequestUserInterventionAction
-    // request_user_clarification: RequestUserClarificationAction
-};
-
-module.exports = { actionClasses, Action, REQUEST_USER_INTERVENTION, SLEEP, SLEEP_UNTIL, COMPLETED, TYPE_IN, PAGE_UP, PAGE_DOWN, COMPLETED }; // , REQUEST_USER_CLARIFICATION };
+module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, PageUpAction, PageDownAction, SleepAction, SleepUntilAction, TypeInAction, CompletedAction, RequestUserInterventionAction, TYPE_IN, actionClasses };

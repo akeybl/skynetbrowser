@@ -66,7 +66,12 @@ class AIRequest {
                 messageForAI = currMessage.getMessageForAI();
             }
 
-            if ( messageForAI ) {
+            if( messageForAI == "") {
+                // neither skipped (null) or a message
+
+                continue;
+            }
+            else if ( messageForAI ) {
                 if (numSkippedMessages > 0 ) {
                     const sm = new SystemMessage({"Notice": `Skipped ${numSkippedMessages} due to message chain length requirements`});
                     minifiedChain.push( sm.getMessageForAI() );

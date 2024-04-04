@@ -1,6 +1,6 @@
 const { stringify } = require('yaml');
 const { formatDate } = require("./utilities.js");
-const { Action, actionClasses, TYPE_IN, REQUEST_USER_CLARIFICATION } = require("./actions.js");
+const { Action, actionClasses, TYPE_IN, CompletedAction } = require("./actions.js");
 const { MAX_AI_MESSAGES } = require('./globals.js');
 
 const SYSTEM_ROLE = 'system';
@@ -99,7 +99,10 @@ class AIMessage extends Message {
     }
 
     getMessageForAI(messageIndex) {
-        if(messageIndex > MAX_AI_MESSAGES) {
+        if(this.actions && this.actions.length > 0 && this.actions[0] instanceof CompletedAction) {
+            return "";
+        }
+        else if(messageIndex > MAX_AI_MESSAGES) {
             if (this.includesQuestion && this.questionText) {
                 return {
                     role: this.role,
@@ -264,7 +267,7 @@ class SystemPrompt extends SystemMessage {
               "Page Text Limitations": [
                 "Only the most recent Page Text will be provided as part of the message history",
                 "To prevent the loss of important information or interactive elements, make sure to message them before goto_url, click_on, or using page_down/page_up",
-                // "When you want a markdown link in your message, to link to {link: This is a link description} you could write [This is a link description](), and the markdown link will be properly formatted on output with a URL"
+                "Page Text does not include link/button URLs. Use get_hrefs with the text within a link/button element to receive the URLs."
               ],
               "On Asking Questions": [
                 // "If you do not have enough information to complete the task, ask clarifying questions as soon as possible. Otherwise just go and perform the user's request",
@@ -290,13 +293,14 @@ class SystemPrompt extends SystemMessage {
               ],
               "Available Function Calls": [
                 "goto_url: full valid URL",
+                "get_hrefs: link: Link text 1 | link: Link text 2 | button: Button text 2 | ...",
                 "page_up: your reason to get previous page of text",
                 "page_down: your reason to get next page of text", 
                 "reload: your reason for reload",
                 "go_back: your reason to go back",
                 "go_forward: your reason to go forward",
                 "click_on: element type and name from Page Text, for instance button: Search or textbox: Search",
-                "type_in: only EXACT text to type into the current input/textbox - do not include input/textbox name here",
+                "type_in: only EXACT text to type into the current input/textbox, even \" will be outputted - do not include input/textbox name here",
                 "request_user_intervention: A reason for giving the user control of the browser - upon user request, CAPTCHA or authentication",
                 "sleep: number of seconds until next action should occur",
                 "sleep_until: date and time",

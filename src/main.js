@@ -56,7 +56,7 @@ const { clearSessions } = require("./data-store.js");
 const { UserMessage, AppMessage, SystemPrompt, AIMessage, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
-const { Action, REQUEST_USER_INTERVENTION, COMPLETED } = require("./actions.js");
+const { Action, RequestUserInterventionAction, CompletedAction } = require("./actions.js");
 const { PROMPT_COST, COMPLETION_COST } = require("./globals.js");
 
 // END REQUIRES
@@ -128,9 +128,9 @@ function sendMessageToRenderer(mainWindow, message) {
   }
 
   if (message.actions && message.actions.length > 0) {
-    if ( message.actions[0].action == COMPLETED ) {
+    if ( message.actions[0] instanceof CompletedAction ) {
     }
-    else if ( message.actions[0].action != REQUEST_USER_INTERVENTION ) {
+    else if ( !(message.actions[0] instanceof RequestUserInterventionAction) ) {
       // console.log(`XXX: ${message.actions[0].action} vs ${REQUEST_USER_INTERVENTION}`);
       mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].action}: ${message.actions[0].actionText}`), type: 'info' });
     }
@@ -292,7 +292,7 @@ goto_url: https://www.google.com/`
       goAgain = true;
     }
 
-    if (aiResponse.actions.length > 0 && aiResponse.actions[0].action == REQUEST_USER_INTERVENTION) {
+    if (aiResponse.actions.length > 0 && aiResponse.actions[0] instanceof RequestUserInterventionAction) {
       mainWindow.webContents.send('set-overlay', false);
     }
   }
