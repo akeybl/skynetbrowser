@@ -16,7 +16,19 @@ class Action {
         // throw new Error('Execute method must be implemented by subclasses');
 
         this.urlAfterExecute = await browserPage.page.url();
-        this.returnParams[`Page URL`] = this.urlAfterExecute;
+
+        let pageURL = this.urlAfterExecute;
+
+        pageURL = pageURL.replace("https://www.", "");
+        pageURL = pageURL.replace("http://www.", "");
+        pageURL = pageURL.replace("https://", "");
+        pageURL = pageURL.replace("http://", "");
+
+        if (pageURL.length > 40) {
+            pageURL = pageURL.substring(0, 40) + "...";
+        }
+
+        this.returnParams[`Page URL`] = pageURL;
 
         this.fullTextAfterExecute = await browserPage.getPageText();
         const tokenLength = await ttokLength(this.fullTextAfterExecute);

@@ -117,7 +117,7 @@ async function clickClosestAriaName(client, page, cursor, label) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
     var nameToElementsMap = await mapNameToElements(nodeTree);
-    console.log(nameToElementsMap);
+    // console.log(nameToElementsMap);
 
     var elementIndex = 0;
     const regex = /#(\d+)#/;
@@ -278,6 +278,8 @@ async function mapNameToElements(node) {
 
     function traverse(node) {
         if (!node) return;
+        // if (node.ignored) return;
+        // console.log(node);
 
         if (interactive.includes(node.role.value) && node.element != null && node.element != {}) {
             var key = `${node.role.value}: ${node.name?.value.trim()}`;
@@ -311,7 +313,7 @@ async function getAriaElementsText(client, page) {
     const addNumberToRepeatingStrings = (array) => {
         // First pass to count occurrences and store indices
         array.forEach((item, index) => {
-            let matches = item.match(/{([^:]+):\s*(.*)}/);
+            let matches = item.match(/{([^:]+):\s*(.*)}(.*)/);
             if (matches) {
                 let identifier = `${matches[1]}: ${matches[2]}`;
                 if (!counts[identifier]) {
@@ -325,17 +327,17 @@ async function getAriaElementsText(client, page) {
     
         // Second pass to number items based on counts and indices
         return array.map((item, index) => {
-            let matches = item.match(/{([^:]+):\s*(.*)}/);
+            let matches = item.match(/{([^:]+):\s*(.*)}(.*)/);
             if (matches) {
                 let identifier = `${matches[1]}: ${matches[2]}`;
                 if (counts[identifier].count > 1) {
                     // Find the index of this occurrence
                     let occurrenceIndex = counts[identifier].indices.indexOf(index) + 1; // +1 to make it human-readable (1-based indexing)
                     if (matches[2] == "") {
-                        return `{${matches[1]}: #${occurrenceIndex}#}`;
+                        return `{${matches[1]}: #${occurrenceIndex}#}${matches[3]}`;
                     }
                     else {
-                        return `{${matches[1]}: ${matches[2]} #${occurrenceIndex}#}`;
+                        return `{${matches[1]}: ${matches[2]} #${occurrenceIndex}#}${matches[3]}`;
                     }
                 }
             }
@@ -352,7 +354,16 @@ async function getAriaElementsText(client, page) {
 function getFullNodeText(node) {
     var nodeTextArray = [];
 
-    if (node.name && node.name.value) {
+    // if (node.role && node.role.value == "image") {
+    //     if (node.name && node.name.value) {
+    //         nodeTextArray.push(`![${node.name.value}]()`.trim());
+    //     }
+    //     else {
+    //         nodeTextArray.push("![]()");
+    //     }
+    // }
+    // else 
+    if (node.name && node.name.value && !node.ignored) {
         nodeTextArray.push(node.name.value);
         // console.log(`XXX: ${node.name.value}`);
     }
@@ -372,9 +383,29 @@ async function getTreeText(node, level) {
     const editable = ["searchbox", "combobox", "textbox"];
     const checkable = ["checkbox", "menuitemcheckbox", "radio", "switch"];
     const selectable = ["switch", "tab", "treeitem"];
+    const hasURL = ["link", "button"];
 
     if (!node.ignored && node.role && node.role.value) {
-        if (interactive.includes(node.role.value)) { // && node.element !== null) {
+        if (hasURL.includes(node.role.value)) {
+            let href = await node.element.evaluate(el => el.getAttribute('href'));
+
+            if (href) {
+                href = href.replace("https://www.", "");
+                href = href.replace("http://www.", "");
+                href = href.replace("https://", "");
+                href = href.replace("http://", "");
+
+                if (href.length > 40) {
+                    href = `${href.substring(0, 40)}...`;
+                }
+
+                fullTextArray.push(`{${node.role.value}: ${node.name.value}}(${href})`);
+            }
+            else {
+                fullTextArray.push(`{${node.role.value}: ${node.name.value}}`);
+            }
+        }
+        else if (interactive.includes(node.role.value)) { // && node.element !== null) {
             if (node.element === null || (node.element !== null && node.element.isVisible())) {
                 var focusStr = "";
                 var editableValueStr = "";
