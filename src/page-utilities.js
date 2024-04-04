@@ -117,7 +117,7 @@ async function clickClosestAriaName(client, page, cursor, label) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
     var nameToElementsMap = await mapNameToElements(nodeTree);
-    console.log(nameToElementsMap);
+    // console.log(nameToElementsMap);
 
     var elementIndex = 0;
     const regex = /#(\d+)#/;
