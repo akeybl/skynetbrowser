@@ -1,21 +1,5 @@
-const OpenAI = require("openai");
-const { MODEL, MAX_WRITE_TOKENS, OPENAI_KEY, OPENROUTER_API_KEY } = require('./globals.js');
 const { AIMessage, AppMessage, UserMessage, SystemPrompt, SystemMessage } = require('./chain-messages.js');
-const { delay } = require('./utilities.js');
-
-const openAIClient = new OpenAI({
-    apiKey: OPENAI_KEY,
-});
-
-const openRouterClient = new OpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
-    apiKey: OPENROUTER_API_KEY,
-    // defaultHeaders: {
-    //     "HTTP-Referer": $YOUR_SITE_URL, // Optional, for including your app on openrouter.ai rankings.
-    //     "X-Title": $YOUR_SITE_NAME, // Optional. Shows in rankings on openrouter.ai.
-    // },
-    // dangerouslyAllowBrowser: true,
-})
+const { delay, getResult } = require('./utilities.js');
 
 class AIRequest {
     constructor(abortController, messageChain) {
@@ -91,65 +75,10 @@ class AIRequest {
     }
 
     async getResult() {
-        console.log(this.getMinifiedChain());
+        const mc = this.getMinifiedChain();
+        console.log(mc);
 
-        if(MODEL.includes("/")) {
-            return await this.getOpenRouterResult();
-        }
-        else {
-            return await this.getOpenAIResult();
-        }
-    }
-
-    async getOpenAIResult() {
-        try {
-            this.response = await openAIClient.chat.completions.create({
-                model: MODEL,
-                max_tokens: MAX_WRITE_TOKENS,
-                messages: this.getMinifiedChain(),
-            },
-                { signal: this.controller.signal });
-
-            return new AIMessage(this.response);
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('Request was cancelled');
-            } else {
-                // Handle other errors
-                console.error('Failed to get response:', error);
-            }
-            return null;
-        }
-    }
-
-    async getOpenRouterResult() {
-        try {
-            while (true) {
-                this.response = await openRouterClient.chat.completions.create({
-                    model: MODEL,
-                    max_tokens: MAX_WRITE_TOKENS,
-                    messages: this.getMinifiedChain(),
-                },
-                    { signal: this.controller.signal });
-
-                if (this.response && this.response.choices && this.response.choices.length > 0) {
-                    break;
-                }
-                else {
-                    await delay(1000);
-                }
-            }
-
-            return new AIMessage(response);
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.log('Request was cancelled');
-            } else {
-                // Handle other errors
-                console.error('Failed to get response:', error);
-            }
-            return null;
-        }
+        return new AIMessage(await getResult(this.controller.signal, mc, true));
     }
 }
 

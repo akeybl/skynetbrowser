@@ -1,5 +1,6 @@
 const { randomDelay, isValidUrl, ttokTruncate, ttokLength } = require("./utilities.js");
-const { PAGE_TOKEN_LENGTH } = require("./globals.js");
+const { PAGE_TOKEN_LENGTH, DUMB_MODEL, DUMB_MAX_WRITE_TOKENS, DUMB_PROMPT_COST, DUMB_COMPLETION_COST } = require("./globals.js");
+const { getResult } = require("./utilities.js");
 
 class Action {
     constructor(action=null, actionText=null) {
@@ -10,6 +11,7 @@ class Action {
         this.urlAfterExecute = null;
         this.fullTextAfterExecute = null;
         this.pageTextAfterExecute = null;
+        this.cost = 0;
     }
 
     async execute(browserPage) {
@@ -40,16 +42,17 @@ class Action {
         this.pageTextAfterExecute = "";
 
         if (browserPage.textPage > 1) {
-            this.pageTextAfterExecute += "# ^ TRUNCATED, CALL page_up FOR MORE\n";
+            this.pageTextAfterExecute += "# ^ TRUNCATED\n";
         }
 
         this.pageTextAfterExecute += await ttokTruncate(this.fullTextAfterExecute, PAGE_TOKEN_LENGTH * (browserPage.textPage-1), PAGE_TOKEN_LENGTH * browserPage.textPage);
 
         if ( browserPage.textPage != fullTextPages ) {
-            this.pageTextAfterExecute += "\n# v TRUNCATED, CALL page_down FOR MORE"
+            this.pageTextAfterExecute += "\n# v TRUNCATED"
         }
 
         this.returnParams[`Page Text`] = this.pageTextAfterExecute;
+        this.returnParams[`Notice`] = `Page Text is incomplete and CANNOT be used for markdown links. You must use find_in_page to get text with URLs from all ${fullTextPages} pages. This is the ONLY way to output valid markdown links.`
 
         return this.returnParams;
     }
@@ -248,11 +251,45 @@ class PageDownAction extends Action {
 class FindInPageAction extends Action {
     constructor(action, actionText) {
         super(action, actionText);
-        this.blocking = true;
+        // this.blocking = true;
+        this.result = null;
     }
 
     async execute(browserPage) {
         console.log(`Finding in page (blocking)`);
+
+        const fullText = await browserPage.getPageText(true);
+        const truncText = await ttokTruncate(fullText, 0, 10000);
+        const chain = [
+            {
+                role: "system",
+                content: `Your role is to provide all lines of text related to "${this.actionText}" from the upcoming user message. Output the entirety of EVERY line related to "${this.actionText}" EXACTLY as it appears in the user message. Make sure to include special characters and URLs exactly as they appear. No additional commentary.`
+            },
+            {
+                role: "user",
+                content: truncText
+            },
+        ];
+
+        console.log(chain);
+        
+        this.result = await getResult(null, chain, true);
+
+        console.log(this.result);
+
+        var resultText;
+        if (this.result.choices.length > 0) {
+            resultText = this.result.choices[0].message.content;
+        }
+        else {
+            resultText = "No matching results. Try again with a different search if necessary.";
+        }
+
+        console.log(resultText);
+
+        this.cost = this.result.usage.prompt_tokens * DUMB_PROMPT_COST + this.result.usage.completion_tokens * DUMB_COMPLETION_COST;
+
+        this.returnParams["All Find Results"] = await ttokTruncate(resultText, 0, 10000);
 
         return await super.execute(browserPage);
     }
@@ -296,7 +333,7 @@ actionClasses[COMPLETED] = CompletedAction;
 const TYPE_IN = "type_in";
 actionClasses[TYPE_IN] = TypeInAction;
 
-const FIND_IN_PAGE = "find_in_page";
+const FIND_IN_PAGE = "find_in_page_text";
 actionClasses[FIND_IN_PAGE] = FindInPageAction;
 
 module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, PageUpAction, PageDownAction, SleepAction, SleepUntilAction, TypeInAction, CompletedAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction };

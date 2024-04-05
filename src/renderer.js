@@ -28,6 +28,7 @@ let messages = [
 ];
 
 function displayMessages() {
+    const visible = isSpinnerVisible();
     messageContainer.innerHTML = ''; // Clear existing messages
 
     const firstMessage = document.createElement('div');
@@ -50,6 +51,9 @@ function displayMessages() {
     });
 
     messageContainer.innerHTML += '<div class="spinner-container"><div class="spinner"></div></div>'
+
+    setSpinner(visible);
+
     messageContainer.scrollTop = messageContainer.scrollHeight; // Scroll to the bottom
 }
 
@@ -82,19 +86,33 @@ window.electronAPI.setSpinner((event, isVisible) => {
     setSpinner(isVisible);
 });
 
+function isSpinnerVisible() {
+    let spinner = document.querySelector('.spinner-container');
+
+    if (spinner) {
+        return spinner.style.display == 'flex';
+    }
+    else {
+        return false;
+    }
+}
+
 function setSpinner(isVisible) {
     // Check if the spinner already exists
     let spinner = document.querySelector('.spinner-container');
-    const messageContainer = document.getElementById('message-container');
 
-    if (isVisible) {
-        spinner.style.display = 'flex';
-    } else {
-        spinner.style.display = 'none';
+    if (spinner) {
+        const messageContainer = document.getElementById('message-container');
+
+        if (isVisible) {
+            spinner.style.display = 'flex';
+        } else {
+            spinner.style.display = 'none';
+        }
+
+        // Scroll to the bottom to ensure the spinner is visible
+        messageContainer.scrollTop = messageContainer.scrollHeight;
     }
-
-    // Scroll to the bottom to ensure the spinner is visible
-    messageContainer.scrollTop = messageContainer.scrollHeight;
 }
 
 setSpinner(false);

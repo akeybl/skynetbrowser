@@ -31,8 +31,6 @@ class BrowserPage {
 
         this.textPage = 1;
 
-        this.includeURLs = false;
-
         var partition = "";
         if (partitioned) {
             partition = `persist:${pageID}`;
@@ -105,11 +103,11 @@ class BrowserPage {
         }
     }
 
-    async getPageText() {
+    async getPageText(includeURLs=false) {
         // console.log("XXX");
         // console.log(this.includeURLs);
-        console.log(await getAriaElementsText(this.client, this.page, true));
-        return await getAriaElementsText(this.client, this.page, this.includeURLs);
+        // console.log(await getAriaElementsText(this.client, this.page, true));
+        return await getAriaElementsText(this.client, this.page, includeURLs);
     }
 
     async clickClosestText(text) {

@@ -1,9 +1,25 @@
 const os = require('os');
 const tiktoken = require("tiktoken");
+const OpenAI = require("openai");
+const { MODEL, MAX_WRITE_TOKENS, OPENAI_KEY, OPENROUTER_API_KEY, SMART_MODEL, SMART_MAX_WRITE_TOKENS, DUMB_MODEL, DUMB_MAX_WRITE_TOKENS } = require('./globals.js');
 
 const isMac = os.platform() === "darwin";
 const isWindows = os.platform() === "win32";
 const isLinux = os.platform() === "linux";
+
+const openAIClient = new OpenAI({
+    apiKey: OPENAI_KEY,
+});
+
+const openRouterClient = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: OPENROUTER_API_KEY,
+    // defaultHeaders: {
+    //     "HTTP-Referer": $YOUR_SITE_URL, // Optional, for including your app on openrouter.ai rankings.
+    //     "X-Title": $YOUR_SITE_NAME, // Optional. Shows in rankings on openrouter.ai.
+    // },
+    // dangerouslyAllowBrowser: true,
+});
 
 async function ttokLength(inputString) {
     const encoding = tiktoken.encoding_for_model("gpt-4");
@@ -93,9 +109,10 @@ function hasQuestion(string) {
     // Check if the last line exists and meets any of the specified conditions
     if (lines.length > 0) {
         const lastLine = lines[lines.length - 1];
-        if (lastLine.includes('?') ||
-            lastLine.toLowerCase().includes('please let') ||
-            lastLine.toLowerCase().includes('let me')) {
+        if (lastLine.includes('?'))
+            // || lastLine.toLowerCase().includes('please let') ||
+            // lastLine.toLowerCase().includes('let me')) {
+        {
                 return true;
         }
     }
@@ -103,4 +120,65 @@ function hasQuestion(string) {
     return false;
 }
 
-module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate, ttokLength, hasQuestion };
+async function getResult(signal, chain, smart) {
+    var model = SMART_MODEL;
+    var maxWriteTokens = SMART_MAX_WRITE_TOKENS;
+
+    if (!smart) {
+        model = DUMB_MODEL;
+        maxWriteTokens = DUMB_MAX_WRITE_TOKENS;
+    }
+
+    if(model.includes("/")) {
+        try {
+            while (true) {
+                this.response = await openRouterClient.chat.completions.create({
+                    model: model,
+                    max_tokens: maxWriteTokens,
+                    messages: chain,
+                },
+                    { signal: signal });
+
+                if (this.response && this.response.choices && this.response.choices.length > 0) {
+                    break;
+                }
+                else {
+                    await delay(1000);
+                }
+            }
+
+            return response;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Request was cancelled');
+            } else {
+                // Handle other errors
+                console.error('Failed to get response:', error);
+            }
+            return null;
+        }
+    }
+    else {
+        try {
+            this.response = await openAIClient.chat.completions.create({
+                model: model,
+                max_tokens: SMART_MAX_WRITE_TOKENS,
+                messages: chain,
+            },
+                { signal: signal });
+
+            return response;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                console.log('Request was cancelled');
+            } else {
+                // Handle other errors
+                console.error('Failed to get response:', error);
+            }
+            return null;
+        }
+    }
+
+}
+
+module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate, ttokLength, hasQuestion, getResult };

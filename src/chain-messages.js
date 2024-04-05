@@ -1,7 +1,7 @@
 const { stringify } = require('yaml');
 const { formatDate, hasQuestion } = require("./utilities.js");
 const { Action, actionClasses, TYPE_IN, CompletedAction } = require("./actions.js");
-const { MAX_AI_MESSAGES } = require('./globals.js');
+const { MAX_AI_MESSAGES, SMART_PROMPT_COST, SMART_COMPLETION_COST } = require('./globals.js');
 
 const SYSTEM_ROLE = 'system';
 const USER_ROLE = 'user';
@@ -15,6 +15,11 @@ class Message {
         this.fullMessage = fullMessage;
         this.date = date || new Date();
         this.chatMessage = fullMessage;
+        this.cost = 0;
+    }
+
+    getCost() {
+        return this.cost;
     }
 
     getMessageForAI() {
@@ -36,10 +41,28 @@ class AIMessage extends Message {
         this.questionText = null;
         this.hasMarkdown = false;
 
+        this.cost = null;
+
         this.parseActionsAndMessage();
     }
 
+    getCost() {
+        if (!this.cost) {
+            return null;
+        }
+        
+        var finalCost = this.cost;
+
+        this.actions.forEach(action => {
+            finalCost += action.cost;
+        });
+
+        return finalCost;
+    }
+
     parseActionsAndMessage() {
+        this.cost = this.aiResponse.usage.prompt_tokens * SMART_PROMPT_COST + this.aiResponse.usage.completion_tokens * SMART_COMPLETION_COST;
+
         const multiLineActions = [TYPE_IN];
 
         const lines = this.fullMessage.split("\n");
@@ -204,6 +227,7 @@ class AppMessage extends YAMLMessage {
 
         if (messageIndex > 0) {
             parsedOut.push("Page Text");
+            parsedOut.push("All Find Results");
         }
 
         var minifiedParams = this.yamlParams;
@@ -241,18 +265,21 @@ class SystemPrompt extends SystemMessage {
         const yamlParams = {
             "Your Role": [
                 "You are a personal AI assistant with access to the web through me, thus extending your capabilities to any company or service that has a website (do not ever suggest using an app to the user)",
-                "I enable you to do anything a human can using a mobile web browser but through function calls. Examples include but are not limited to sending emails, monitoring a page, ordering taxis, playing media for the user, and interacting with social media",
+                "I enable you to do anything a human can using a mobile web browser but through function calls. Examples include but are not limited to sending emails using email websites, monitoring a page, ordering taxis, playing media for the user, and interacting with social media",
                 "Whenever possible fulfill the user's requests without asking any questions or requesting any feedback",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
-                "When referencing text with a link for more details/info, include links that you get from find_in_page",
+                "Don't repeat or summarize previous assistant messages - it's unnecessary and undesirable",
+                "Include markdown links in your responses, but only if you use direct links (like those found in find_in_page_text)",
+                // "When the user requests links (or extraction), send them the results of find_in_page_text",
+                "find_in_page_text is the best way to get information you need from the current Page Text, and is much more efficient than using page_down. You do not need to use page_down after using find_in_page_text.",
                 "You will be rewarded with appreciation if you do not ask permission to proceed with a user's request",
-                // "Don't summarize your previous messages, it's not necessary",
-                "find_in_page is MUCH more efficient than using page_down and has access to full URLs",
             ],
-            "Page Text Limitations": [
+            "Page Text": [
                 "Only the most recent Page Text will be provided as part of the message history",
-                "To prevent the loss of important information, make sure to message that info before calling goto_url, click_on, or page_down/page_up",
-                "Page Text does not include URLs. The response to find_in_page DOES include URLs though"
+                "To prevent the loss of important information, make sure to message any information from a function call response before calling goto_url, page_up, page_down, reload, go_back, go_forward, or click_on",
+                "Page Text does not include URLs",
+                "find_in_page_text has access to the full Page Text (including URLs) and returns ALL instances of whatever you're looking for from the full Page Text",
+                "Examples of what find_in_page_text can find in the current Page Text include 'links about candycanes', 'thai restaurants', 'information on diabetes', 'search button, complete button, or similar'"
             ],
             "On Asking Questions": [
                 "Requests for information/feedback should always be asked as a question with a question mark",
@@ -274,7 +301,8 @@ class SystemPrompt extends SystemMessage {
             ],
             "Function Calls": [
                 "goto_url: full valid URL",
-                "find_in_page: what you're looking for",
+                // get_navigation_text might be necessary here?
+                "find_in_page_text: description of what you're looking for",
                 "page_up: reason to get previous page of text",
                 "page_down: reason to get next page of text",
                 "reload: reason for reload",

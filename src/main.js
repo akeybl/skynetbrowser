@@ -57,7 +57,6 @@ const { UserMessage, AppMessage, SystemPrompt, AIMessage, USER_ROLE, ASSISTANT_R
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
 const { Action, RequestUserInterventionAction, CompletedAction } = require("./actions.js");
-const { PROMPT_COST, COMPLETION_COST } = require("./globals.js");
 
 // END REQUIRES
 
@@ -148,12 +147,7 @@ function setPriceInWindow(mainWindow, messageChain) {
   var costs = [];
 
   messageChain.forEach(message => {
-    // console.log(message);
-    if ( message.role == ASSISTANT_ROLE ) {
-      const usage = message.aiResponse.usage;
-      const messageCost = usage.prompt_tokens * PROMPT_COST + usage.completion_tokens * COMPLETION_COST;
-      costs.push(messageCost);
-    }
+    costs.push(message.getCost());
   });
 
   // console.log(costs);
@@ -186,7 +180,7 @@ async function main() {
     new AIMessage( {
       choices: [
         { message: {
-            content: `I will prepare for your request by going to Google, which is many times a good starting point.
+            content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of a user request.
 
 goto_url: https://www.google.com/`
           }
@@ -240,6 +234,7 @@ goto_url: https://www.google.com/`
     if (messageChain.length == 2) {
       const act = new Action();
       var params = await act.execute(browserPage);;
+      params["Notice"] = "Do not use find_in_page_text on this page."
       const am = new AppMessage(params);
       messageChain.push(am);
     }
@@ -267,16 +262,11 @@ goto_url: https://www.google.com/`
         appMessageParams["WARNING"] = `Only the first action, ${aiResponse.actions[0].action}, is addressed by this message. All other actions were ignored and need to be sent again if still appropriate.`
       }
 
+      // HERE IT IS
+
       const params = Object.assign({}, appMessageParams, await aiResponse.actions[0].execute(browserPage));
       appMessage = new AppMessage(params);
-
-      // if (aiResponse.actions[0] instanceof CompletedAction) {
-      //   browserPage.includeURLs = false;
-      // }
     }
-    // else {
-    //   browserPage.includeURLs = false;
-    // }
 
     messageChain.push(aiResponse);
     setPriceInWindow(mainWindow, messageChain)
@@ -288,7 +278,8 @@ goto_url: https://www.google.com/`
       const a = new Action();
       var params = await a.execute(browserPage);
 
-      params["Notice"] = "Your message was received by the user. Do not expect a response from the user. If you need to ask a question, ask one. If you believe you've accomplished ALL of the user's requests and require no further actions (like sleep/sleep_until for recurring events), call completed:. If your tasks are not done, you must continue by making a function call.";
+      params["Notice"] = "Your message was received by the user, but since you didn't ask a question, do not expect a response from the user.";
+      params["Next Steps"] = "If you are done with ALL requested tasks including recurrence, call completed.  If you were trying to ask a question, use a question mark next time. Otherwise, you must continue by making a function call - for instance sleep/sleep_until for recurring tasks.";
 
       appMessage = new AppMessage(params);
       messageChain.push(appMessage);
