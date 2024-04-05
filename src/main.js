@@ -56,7 +56,7 @@ const { clearSessions } = require("./data-store.js");
 const { UserMessage, AppMessage, SystemPrompt, AIMessage, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
-const { Action, RequestUserInterventionAction, CompletedAction } = require("./actions.js");
+const { Action, RequestUserInterventionAction } = require("./actions.js"); // CompletedAction
 
 // END REQUIRES
 
@@ -127,9 +127,9 @@ function sendMessageToRenderer(mainWindow, message) {
   }
 
   if (message.actions && message.actions.length > 0) {
-    if ( message.actions[0] instanceof CompletedAction ) {
-    }
-    else if ( !(message.actions[0] instanceof RequestUserInterventionAction) ) {
+    // if ( message.actions[0] instanceof CompletedAction ) {
+    // }
+    if ( !(message.actions[0] instanceof RequestUserInterventionAction) ) {
       // console.log(`XXX: ${message.actions[0].action} vs ${REQUEST_USER_INTERVENTION}`);
       mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].action}: ${message.actions[0].actionText}`), type: 'info' });
     }
@@ -180,7 +180,7 @@ async function main() {
     new AIMessage( {
       choices: [
         { message: {
-            content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of a user request.
+            content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of a user request. I will create a plan using set_plan before taking next steps.
 
 goto_url: https://www.google.com/`
           }
@@ -194,12 +194,13 @@ goto_url: https://www.google.com/`
   let newUserMessages = [];
 
   ipcMain.on('reset-messages', (event) => {
-    messageChain.forEach(message => {
-      const type = message.role === USER_ROLE ? 'sent' : 'received';
-
-      sendMessageToRenderer(mainWindow, message);
-      setPriceInWindow(mainWindow, messageChain)
-    });
+    for (let i = 0; i < messageChain.length; i++) {
+      if(i > 1) {
+        const message = messageChain[i];
+        sendMessageToRenderer(mainWindow, message);
+        setPriceInWindow(mainWindow, messageChain)
+      }
+    }
   });
 
   ipcMain.on('send-message', async (event, userMessage) => {
@@ -278,8 +279,8 @@ goto_url: https://www.google.com/`
       const a = new Action();
       var params = await a.execute(browserPage);
 
-      params["Notice"] = "Your message was received by the user, but since you didn't ask a question, do not expect a response from the user.";
-      params["Next Steps"] = "If you are done with ALL requested tasks including recurrence, call completed.  If you were trying to ask a question, use a question mark next time. Otherwise, you must continue by making a function call - for instance sleep/sleep_until for recurring tasks.";
+      params["Notice"] = "Your message was received by the user. Make a function call!";
+      // params["Next Steps"] = "Continue your task.";
 
       appMessage = new AppMessage(params);
       messageChain.push(appMessage);

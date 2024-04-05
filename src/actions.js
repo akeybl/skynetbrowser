@@ -52,7 +52,7 @@ class Action {
         }
 
         this.returnParams[`Page Text`] = this.pageTextAfterExecute;
-        this.returnParams[`Notice`] = `Page Text is incomplete and CANNOT be used for markdown links. You must use find_in_page to get text with URLs from all ${fullTextPages} pages. This is the ONLY way to output valid markdown links.`
+        this.returnParams[`Notice`] = `1) Message anything from Page Text or Find Results that you will need to use in the future or it will no longer be available to you. 2) This Page Text is incomplete and CANNOT be used for markdown links. You must use find_in_page_text to get text with URLs from all ${fullTextPages} pages. This is the ONLY way to output valid markdown links.`
 
         return this.returnParams;
     }
@@ -217,35 +217,35 @@ class RequestUserInterventionAction extends Action {
     }
 }
 
-class CompletedAction extends Action {
-    constructor(action, actionText) {
-        super(action, actionText);
-        this.blocking = true;
-    }
+// class CompletedAction extends Action {
+//     constructor(action, actionText) {
+//         super(action, actionText);
+//         this.blocking = true;
+//     }
 
-    async execute(browserPage) {
-        console.log(`Action completed`);
-        return await super.execute(browserPage);
-    }
-}
+//     async execute(browserPage) {
+//         console.log(`Action completed`);
+//         return await super.execute(browserPage);
+//     }
+// }
 
-class PageUpAction extends Action {    
-    async execute(browserPage) {
-        console.log(`Paging up`);
-        browserPage.textPage -= 1;
-        this.returnParams["Outcome"] = `${PAGE_UP} to page ${browserPage.textPage} complete.`;
-        return await super.execute(browserPage);
-    }
-}
+// class PageUpAction extends Action {    
+//     async execute(browserPage) {
+//         console.log(`Paging up`);
+//         browserPage.textPage -= 1;
+//         this.returnParams["Outcome"] = `${PAGE_UP} to page ${browserPage.textPage} complete.`;
+//         return await super.execute(browserPage);
+//     }
+// }
 
-class PageDownAction extends Action {    
-    async execute(browserPage) {
-        console.log(`Paging down`);
-        browserPage.textPage += 1;
-        this.returnParams["Outcome"] = `${PAGE_DOWN} to page ${browserPage.textPage} complete.`;
-        return await super.execute(browserPage);
-    }
-}
+// class PageDownAction extends Action {    
+//     async execute(browserPage) {
+//         console.log(`Paging down`);
+//         browserPage.textPage += 1;
+//         this.returnParams["Outcome"] = `${PAGE_DOWN} to page ${browserPage.textPage} complete.`;
+//         return await super.execute(browserPage);
+//     }
+// }
 
 
 class FindInPageAction extends Action {
@@ -312,11 +312,11 @@ actionClasses[RELOAD] = ReloadAction;
 const CLICK_ON = "click_on";
 actionClasses[CLICK_ON] = ClickOnAction;
 
-const PAGE_UP = "page_up";
-actionClasses[PAGE_UP] = PageUpAction;
+// const PAGE_UP = "page_up";
+// actionClasses[PAGE_UP] = PageUpAction;
 
-const PAGE_DOWN = "page_down";
-actionClasses[PAGE_DOWN] = PageDownAction;
+// const PAGE_DOWN = "page_down";
+// actionClasses[PAGE_DOWN] = PageDownAction;
 
 const SLEEP = "sleep";
 actionClasses[SLEEP] = SleepAction;
@@ -327,8 +327,8 @@ actionClasses[SLEEP_UNTIL] = SleepUntilAction;
 const REQUEST_USER_INTERVENTION = "request_user_intervention";
 actionClasses[REQUEST_USER_INTERVENTION] = RequestUserInterventionAction;
 
-const COMPLETED = "completed";
-actionClasses[COMPLETED] = CompletedAction;
+// const COMPLETED = "all_done_including_reccurrence";
+// actionClasses[COMPLETED] = CompletedAction;
 
 const TYPE_IN = "type_in";
 actionClasses[TYPE_IN] = TypeInAction;
@@ -336,4 +336,4 @@ actionClasses[TYPE_IN] = TypeInAction;
 const FIND_IN_PAGE = "find_in_page_text";
 actionClasses[FIND_IN_PAGE] = FindInPageAction;
 
-module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, PageUpAction, PageDownAction, SleepAction, SleepUntilAction, TypeInAction, CompletedAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction };
+module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction,  SleepAction, SleepUntilAction, TypeInAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction }; // CompletedAction, PageUpAction, PageDownAction
