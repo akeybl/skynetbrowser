@@ -52,7 +52,13 @@ class Action {
         }
 
         this.returnParams[`Page Text`] = this.pageTextAfterExecute;
-        this.returnParams[`Notice`] = `1) Message anything from Page Text or Find Results that you will need to use in the future or it will no longer be available to you. 2) This Page Text is incomplete and CANNOT be used for markdown links. You must use find_in_page_text to get text with URLs from all ${fullTextPages} pages. This is the ONLY way to output valid markdown links.`
+
+        if (this.action == FIND_IN_PAGE) {
+            this.returnParams[`Notice`] = `Message anything from Find Results that you will need to use in the future or it will no longer be available to you.`
+        }
+        else {
+            this.returnParams[`Notice`] = `Page Text is incomplete and should only be used for navigation and interaction. You must use find_in_page_text in all other cases, as it has access to all ${fullTextPages} pages and link URLs.`
+        }
 
         return this.returnParams;
     }

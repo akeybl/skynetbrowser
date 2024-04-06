@@ -93,8 +93,11 @@ function formatDate(date) {
     // Ensuring two-digit minute format
     minute = minute < 10 ? '0' + minute : minute;
 
-    // Formatting the string
-    return `${month}/${day}/${year} ${hour}:${minute}${ampm}`;
+    // Getting the current time zone name
+    let timeZoneName = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(date).split(', ')[1];
+
+    // Formatting the string with time zone
+    return `${month}/${day}/${year} ${hour}:${minute}${ampm} ${timeZoneName}`;
 }
 
 function getRandomInt(min, max) {
