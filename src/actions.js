@@ -219,7 +219,7 @@ class FindInPageAction extends Action {
         const chain = [
             {
                 role: "system",
-                content: `Your role is to provide all lines of text related to "${this.actionText}" from the upcoming user message. Output the entirety of EVERY line related to "${this.actionText}" EXACTLY as it appears in the user message. Make sure to include special characters and URLs exactly as they appear. No additional commentary.`
+                content: `Your role is to provide all lines of text related to "${this.actionText}" from the upcoming user message. Output the entirety of EVERY line related to "${this.actionText}" EXACTLY as it appears in the user message, with ... URLs. Make sure to include special characters and URLs exactly as they appear. No additional commentary.`
             },
             {
                 role: "user",
