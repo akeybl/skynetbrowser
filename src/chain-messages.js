@@ -1,6 +1,6 @@
 const { stringify } = require('yaml');
 const { formatDate, hasQuestion } = require("./utilities.js");
-const { Action, actionClasses, TYPE_IN } = require("./actions.js"); // CompletedAction
+const { Action, actionClasses, TYPE_IN, SET_GOAL, SetGoalAction } = require("./actions.js"); // CompletedAction
 const { MAX_AI_MESSAGES, SMART_PROMPT_COST, SMART_COMPLETION_COST } = require('./globals.js');
 
 const SYSTEM_ROLE = 'system';
@@ -63,7 +63,7 @@ class AIMessage extends Message {
     parseActionsAndMessage() {
         this.cost = this.aiResponse.usage.prompt_tokens * SMART_PROMPT_COST + this.aiResponse.usage.completion_tokens * SMART_COMPLETION_COST;
 
-        const multiLineActions = [TYPE_IN];
+        const multiLineActions = [TYPE_IN, SET_GOAL];
 
         const lines = this.fullMessage.split("\n");
         let actions = [];
@@ -97,21 +97,27 @@ class AIMessage extends Message {
             messages.push(line);
         }
 
-        if (messages.length != 0 && hasQuestion(messages[messages.length - 1])) {
+        var questions = [];
+
+        for (let i = messages.length - 1; i >= 0; i--) {
+            var message = messages[i];
+            if(hasQuestion(message)) {
+                const regex = /\s*-\s*|\s*\*\s*|\s*\d+\.\s*/g;
+                message = message.replace(regex, '');              
+                questions.push(message);
+            } else if(message.trim() != "") {
+                break;
+            }
+        }
+
+        if (questions.length > 0) {
             this.includesQuestion = true;
-            this.questionText = messages[messages.length - 1];    
+            this.questionText = questions.join("\n");
         }
 
         this.actions = actions;
 
         var messagesStr = messages.join("\n");
-
-        // if (messagesStr.includes("*") || this.includesQuestion) {
-        // this.chatMessage = messagesStr.replace(/\*/g, '').replace(">-", "").trim();
-        // }
-        // else {
-        //     this.chatMessage = "";
-        // }
 
         const markdownRegex = /\]\(|\*/g;
         this.hasMarkdown = markdownRegex.test(messagesStr);
@@ -120,10 +126,27 @@ class AIMessage extends Message {
     }
 
     getMessageForAI(messageIndex) {
-        // if (this.actions && this.actions.length > 0 && this.actions[0] instanceof CompletedAction) {
-        //     return "";
-        // }
-        if (messageIndex >= MAX_AI_MESSAGES) {
+        if (this.fullMessage.indexOf("Goal:") == 0) {
+            if(this.includesQuestion) {
+                return {
+                    role: this.role,
+                    content: `Goal:... (TRUNCATED & MOVED TO SYSTEM PROMPT)\n\n${this.questionText}`
+                }
+            }
+            else if (this.actions.length > 0) {
+                return {
+                    role: this.role,
+                    content: `Goal:... (TRUNCATED & MOVED TO SYSTEM PROMPT)\n\n${this.actions[0].action}: ${this.actions[0].actionText}`
+                }
+            }
+            else {
+                return {
+                    role: this.role,
+                    content: "Goal:... (TRUNCATED & MOVED TO SYSTEM PROMPT)"
+                }
+            }
+        }
+        else if (messageIndex >= MAX_AI_MESSAGES) {
             if (this.includesQuestion && this.questionText) {
                 return {
                     role: this.role,
@@ -266,17 +289,21 @@ class SystemPrompt extends SystemMessage {
             "Your Role": [
                 "You are a personal AI assistant with access to the web through me, thus extending your capabilities to any company or service that has a website (do not ever suggest using an app to the user)",
                 "I enable you to do anything a human can using a mobile web browser but through function calls. Examples include (but are not limited) sending an email, monitoring a page, ordering taxis, playing media for the user, and interacting with social media",
-                "Whenever the plan changes based on a user's direct message, call set_plan with an updated goal and numbered step-by-step plan for addressing the user request. Include all sites/services you will use to complete each step (for instance 'Send it as an email using Gmail'). Note when you will use find_in_page_text (for instance 'Find all restaurant links using find_in_page_text'), when you will sleep (for instance 'Sleep until 9am the next day, then go to step 1'), and when you will return to a previous step.",
-                "You can send an email and include information from your previous messages. First navigate to the user's email service and then continue from there.",
-                // "Always make a one paragraph general plan to fulfill the user request before attempting",
-                "Whenever possible fulfill the user's requests without asking any questions or requesting any feedback",
+                "Whenever the plan changes based on a user's direct message, message with an updated plan including goal and numbered step-by-step plan for addressing the user request (see 'On Planning')",
+                "When requested specifically, you can send an email and include information from your previous messages. First navigate to the user's email service and then continue from there.",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
-                // "Don't summarize previous assistant messages - it's unnecessary and undesirable",
                 "Include markdown links in your responses, but only if you use direct links (like those found in find_in_page_text)",
-                // "When the user requests links (or extraction), send them the results of find_in_page_text",
-                "find_in_page_text is the best way to get information you need from the current Page Text", //, and is much more efficient than using page_down. You do not need to use page_down after using find_in_page_text.",
+                "find_in_page_text is the best way to get information you need from the current Page Text",
                 "You will be rewarded with appreciation if you do not ask permission to proceed with a user's request",
-                "Use sleep: forever if there's nothing you can do for the user in the future"
+                "Use the sleep function with a time of forever if there's nothing you can do for the user in the future"
+            ],
+            "On Planning": [
+                "Goal MUST be on the first line of a planning message, for instance 'Goal: user's goal here'",
+                "Include all sites/services you will use to complete each step (for instance 'Send it as an email using Gmail')",
+                "Note when you will use find_in_page_text (for instance 'Find all restaurant links using find_in_page_text')",
+                "Always note how you are able to use sleep to perform monitoring, scheduled messages, reminders, etc without other services",
+                "Note when you will return to a previous step",
+                "Finish with open questions for the user (for instance 'What is your specific location?')"
             ],
             "Page Text": [
                 // "Only the most recent Page Text will be provided as part of the message history",
@@ -304,7 +331,6 @@ class SystemPrompt extends SystemMessage {
                 "Instead of trying to set up monitoring, ask the user for a check frequency sleep for that amount of time in seconds"
             ],
             "Function Calls": [
-                "set_plan: Your step-by-step plan, should be multi-line and include sites/services and needed function calls",
                 "goto_url: full valid URL",
                 // get_navigation_text might be necessary here?
                 "find_in_page_text: description of what you're looking for in full Page Text",
@@ -313,7 +339,7 @@ class SystemPrompt extends SystemMessage {
                 "reload: reason for reload current page",
                 "go_back: reason to go back in browsing history",
                 // "go_forward: reason to go forward in browsing history",
-                "click_on: full element description from Page Text, for instance button: Search or textbox: Search",
+                "click_on: full element description (text INSIDE curly brackets) from element to click, for instance button: Done or textbox: Search",
                 "type_in: only EXACT text to type into the current input/textbox, even \" will be outputted - do not include input/textbox name here",
                 "request_user_intervention: reason for giving the user control of the browser - upon user request, CAPTCHA or authentication",
                 "sleep: number of seconds until next action should occur",
@@ -325,14 +351,19 @@ class SystemPrompt extends SystemMessage {
                 "A function call should be on its own line, and the line should start with the function name. It should have the following format:\n\nfunction_name: input text"
             ],
             "User Name": userName,
-            "User Location": `${userLocation} - ask the user for a more precise location if needed`,
+            "User Location": `${userLocation} - ask the user for a more precise location when utilizing location`,
             "Start Date and Time": formatDate(initialDate),
-            // "Current Plan": "no plan yet"
+            "Current Goal and Plan": "no goal/plan yet"
         }
 
         super(yamlParams, initialDate);
 
         this.chatMessage = "";
+    }
+
+    updateGoalAndPlan(str) {
+        this.yamlParams["Current Goal and Plan"] = str;
+        this.fullMessage = stringify(this.yamlParams);
     }
 }
 

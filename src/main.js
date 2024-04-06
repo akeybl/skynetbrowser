@@ -180,7 +180,7 @@ async function main() {
     new AIMessage( {
       choices: [
         { message: {
-            content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of a user request. I will create a plan using set_plan before taking next steps.
+            content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of your request.
 
 goto_url: https://www.google.com/`
           }
@@ -252,20 +252,67 @@ goto_url: https://www.google.com/`
 
     console.log(`Got AI response: ${aiResponse.fullMessage}`);
 
+    if (aiResponse.fullMessage.indexOf("Goal:") == 0 || aiResponse.fullMessage.indexOf("\nGoal:") != -1) {
+      console.log("Updating system prompt goal");
+      const lines = aiResponse.fullMessage.split('\n');
+      var goalLines = [];
+
+      var gotGoalStart = false;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+
+        if (!gotGoalStart && line.indexOf("Goal:") != 0) {
+          continue
+        }
+
+        gotGoalStart = true;
+
+        if( line.trim() == "" || line.toLowerCase().includes('open question') ) {
+          continue;
+        }
+
+        if (aiResponse.questionText && !aiResponse.questionText.includes(line)) {
+          continue;
+        }
+
+        var hasAction = false;
+        aiResponse.actions.forEach(action => {
+          if (line.indexOf(action.action) == 0) {
+            hasAction = true;
+          }
+        });
+
+        if (hasAction) {
+          continue;
+        }
+
+        goalLines.push(line);
+      };
+
+      goalLines.reverse();
+
+      aiResponse.chatMessage = aiResponse.questionText ? aiResponse.questionText : "";
+      messageChain[0].updateGoalAndPlan(goalLines);
+    }
+
     sendMessageToRenderer(mainWindow, aiResponse);
 
     var appMessage = null;
 
-    if (aiResponse.actions.length > 0) {
+    if (aiResponse.actions.length > 0 && !aiResponse.includesQuestion) {
       var appMessageParams = {};
 
       if (aiResponse.actions.length > 1) {
         appMessageParams["WARNING"] = `Only the first action, ${aiResponse.actions[0].action}, is addressed by this message. All other actions were ignored and need to be sent again if still appropriate.`
       }
 
-      // HERE IT IS
+      const executeResult = await aiResponse.actions[0].execute(browserPage, abortController);
 
-      const params = Object.assign({}, appMessageParams, await aiResponse.actions[0].execute(browserPage));
+      if (!executeResult) {
+        continue;
+      }
+
+      const params = Object.assign({}, appMessageParams, executeResult);
       appMessage = new AppMessage(params);
     }
 

@@ -78,7 +78,8 @@ class AIRequest {
         const mc = this.getMinifiedChain();
         console.log(mc);
 
-        return new AIMessage(await getResult(this.controller.signal, mc, true));
+        const result = await getResult(this.controller.signal, mc, true)
+        return new AIMessage(result);
     }
 }
 

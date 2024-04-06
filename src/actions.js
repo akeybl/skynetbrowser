@@ -14,7 +14,7 @@ class Action {
         this.cost = 0;
     }
 
-    async execute(browserPage) {
+    async execute(browserPage, abortController = null) {
         // throw new Error('Execute method must be implemented by subclasses');
 
         this.urlAfterExecute = await browserPage.page.url();
@@ -59,12 +59,8 @@ class Action {
 }
 
 class GotoUrlAction extends Action {
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Going to URL: ${this.actionText}`);
-
-        // if (browserPage.includeURLs) {
-        //     browserPage.includeURLs = false;
-        // }
 
         let url = this.actionText;
         if(this.actionText.indexOf("http") != 0) {
@@ -84,17 +80,13 @@ class GotoUrlAction extends Action {
 
         await randomDelay(4000, 5000);
 
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
 class GoBackAction extends Action {
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Going back in browser history`);
-
-        // if (browserPage.includeURLs) {
-        //     browserPage.includeURLs = false;
-        // }
 
         await browserPage.page.goBack();
 
@@ -102,17 +94,13 @@ class GoBackAction extends Action {
 
         await randomDelay(2000, 3000);
 
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
 class GoForwardAction extends Action {
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Going forward in browser history`);
-
-        // if (browserPage.includeURLs) {
-        //     browserPage.includeURLs = false;
-        // }
 
         await browserPage.page.goForward();
 
@@ -120,12 +108,12 @@ class GoForwardAction extends Action {
 
         await randomDelay(2000, 3000);
 
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
 class ReloadAction extends Action {
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Reloading the page`);
 
         await browserPage.page.reload();
@@ -134,17 +122,13 @@ class ReloadAction extends Action {
 
         await randomDelay(2000, 3000);
 
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
 class ClickOnAction extends Action {
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Clicking on: ${this.actionText}`);
-
-        // if (browserPage.includeURLs) {
-        //     browserPage.includeURLs = false;
-        // }
 
         try {
             await browserPage.clickClosestText(this.actionText);
@@ -157,17 +141,13 @@ class ClickOnAction extends Action {
 
         await randomDelay(4000, 5000);
 
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
 class TypeInAction extends Action {
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Typing in: ${this.actionText}`);
-
-        // if (browserPage.includeURLs) {
-        //     browserPage.includeURLs = false;
-        // }
 
         await browserPage.typeIn(this.actionText);
         
@@ -175,7 +155,7 @@ class TypeInAction extends Action {
 
         await randomDelay(2000, 3000);
 
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
@@ -185,10 +165,10 @@ class SleepAction extends Action {
         this.blocking = true;
     }
 
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Sleeping for: ${this.actionText} milliseconds`);
         // XXX: Not yet implemented
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
@@ -198,10 +178,10 @@ class SleepUntilAction extends Action {
         this.blocking = true;
     }
 
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Sleeping until: ${this.actionText} (a specific condition is met)`);
         // XXX: Not yet implemented
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
@@ -211,41 +191,11 @@ class RequestUserInterventionAction extends Action {
         this.blocking = true;
     }
     
-    async execute(browserPage) {
+    async execute(browserPage, abortController=null) {
         console.log(`Requesting user intervention: ${this.actionText}`);
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
-
-// class CompletedAction extends Action {
-//     constructor(action, actionText) {
-//         super(action, actionText);
-//         this.blocking = true;
-//     }
-
-//     async execute(browserPage) {
-//         console.log(`Action completed`);
-//         return await super.execute(browserPage);
-//     }
-// }
-
-// class PageUpAction extends Action {    
-//     async execute(browserPage) {
-//         console.log(`Paging up`);
-//         browserPage.textPage -= 1;
-//         this.returnParams["Outcome"] = `${PAGE_UP} to page ${browserPage.textPage} complete.`;
-//         return await super.execute(browserPage);
-//     }
-// }
-
-// class PageDownAction extends Action {    
-//     async execute(browserPage) {
-//         console.log(`Paging down`);
-//         browserPage.textPage += 1;
-//         this.returnParams["Outcome"] = `${PAGE_DOWN} to page ${browserPage.textPage} complete.`;
-//         return await super.execute(browserPage);
-//     }
-// }
 
 
 class FindInPageAction extends Action {
@@ -255,7 +205,7 @@ class FindInPageAction extends Action {
         this.result = null;
     }
 
-    async execute(browserPage) {
+    async execute(browserPage, abortController) {
         console.log(`Finding in page (blocking)`);
 
         const fullText = await browserPage.getPageText(true);
@@ -271,11 +221,15 @@ class FindInPageAction extends Action {
             },
         ];
 
-        console.log(chain);
+        // console.log(chain);
         
-        this.result = await getResult(null, chain, true);
+        this.result = await getResult(abortController.signal, chain, true);
 
-        console.log(this.result);
+        if(!this.result) {
+            return null;
+        }
+
+        // console.log(this.result);
 
         var resultText;
         if (this.result.choices.length > 0) {
@@ -291,7 +245,7 @@ class FindInPageAction extends Action {
 
         this.returnParams["All Find Results"] = await ttokTruncate(resultText, 0, 10000);
 
-        return await super.execute(browserPage);
+        return await super.execute(browserPage, abortController);
     }
 }
 
@@ -312,12 +266,6 @@ actionClasses[RELOAD] = ReloadAction;
 const CLICK_ON = "click_on";
 actionClasses[CLICK_ON] = ClickOnAction;
 
-// const PAGE_UP = "page_up";
-// actionClasses[PAGE_UP] = PageUpAction;
-
-// const PAGE_DOWN = "page_down";
-// actionClasses[PAGE_DOWN] = PageDownAction;
-
 const SLEEP = "sleep";
 actionClasses[SLEEP] = SleepAction;
 
@@ -327,13 +275,10 @@ actionClasses[SLEEP_UNTIL] = SleepUntilAction;
 const REQUEST_USER_INTERVENTION = "request_user_intervention";
 actionClasses[REQUEST_USER_INTERVENTION] = RequestUserInterventionAction;
 
-// const COMPLETED = "all_done_including_reccurrence";
-// actionClasses[COMPLETED] = CompletedAction;
-
 const TYPE_IN = "type_in";
 actionClasses[TYPE_IN] = TypeInAction;
 
 const FIND_IN_PAGE = "find_in_page_text";
 actionClasses[FIND_IN_PAGE] = FindInPageAction;
 
-module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction,  SleepAction, SleepUntilAction, TypeInAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction }; // CompletedAction, PageUpAction, PageDownAction
+module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction,  SleepAction, SleepUntilAction, TypeInAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction };

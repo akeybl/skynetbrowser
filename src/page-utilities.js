@@ -239,7 +239,13 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
             nodeClone.name = {};
         }
 
-        nodeClone.name.value = getFullNodeText(nodeClone).join(" ").trim();
+        var fnt = getFullNodeText(nodeClone).join(" ").trim();
+
+        if (fnt == null || fnt == "") {
+            fnt = "unnamed";
+        }
+
+        nodeClone.name.value = fnt;
         // console.log(nodeClone.name.value);
 
         nodeClone.children = [];
@@ -366,6 +372,9 @@ function getFullNodeText(node) {
     if (node.name && node.name.value && !node.ignored) {
         nodeTextArray.push(node.name.value);
         // console.log(`XXX: ${node.name.value}`);
+    }
+    else {
+        nodeTextArray.push("");
     }
 
     for (let childNode of node.children) {
