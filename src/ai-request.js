@@ -79,7 +79,13 @@ class AIRequest {
         console.log(mc);
 
         const result = await getResult(this.controller.signal, mc, true)
-        return new AIMessage(result);
+        
+        if(result) {
+            return new AIMessage(result);
+        }
+        else {
+            return null;
+        }
     }
 }
 

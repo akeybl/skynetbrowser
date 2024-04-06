@@ -326,7 +326,7 @@ goto_url: https://www.google.com/`
       const a = new Action();
       var params = await a.execute(browserPage);
 
-      params["Notice"] = "Your message was received by the user. Make a function call!";
+      params["Notice"] = "Your message was received by the user. Continue with your task by making a function call or call sleep: forever if you never plan to do anything for the user in the future.";
       // params["Next Steps"] = "Continue your task.";
 
       appMessage = new AppMessage(params);
