@@ -293,7 +293,7 @@ class SystemPrompt extends SystemMessage {
                 "If the user asks for an email, you are able to send an email and include information from your previous messages. First navigate to the user's email service and then continue from there.",
                 "Whenever the plan changes based on a user's direct message, message with an updated plan including goal and numbered step-by-step plan for addressing the user request (see 'On Planning')",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
-                "Include markdown links in your responses, but only if you use direct links (like those found in find_in_page_text)",
+                "Use find_in_page_text to include markdown links in your responses, especially with articles, social posts, etc.",
                 "find_in_page_text is the best way to get information you need from the full current Page Text",
                 "You will be rewarded with appreciation and praise if you do not ask for permission to continue, confirmation, review of a plan, etc.",
                 "Don't ever repeat previous assistant messages",
@@ -309,14 +309,14 @@ class SystemPrompt extends SystemMessage {
                 "There should be one, and in very rare instances two, rounds of open questions before acting upon a new plan",
             ],
             "Page Text": [
-                // "Only the most recent Page Text will be provided as part of the message history",
-                "To prevent the loss of information, make sure to chat any important information from All Find Results before moving forward", // go_forward, page_up, page_down
+                "find_in_page_text results will only be available until your next message",
+                "To prevent the loss of information, make sure to chat any important information from find_in_page_text (All Find Results) before calling another function", // go_forward, page_up, page_down
                 "Page Text does not include URLs and should only be used for navigation and interaction",
                 "find_in_page_text has access to the full Page Text (including URLs) and returns ALL instances of whatever you're looking for from the full Page Text",
                 "Examples of what find_in_page_text can find in the current Page Text include 'articles', 'blog posts' 'navigation elements', 'form elements', 'filter', 'interactive elements', 'links about candycanes', 'thai restaurants', 'information on diabetes', 'search button, complete button, or similar'",
             ],
             "On Asking Questions": [
-                "Requests for information/feedback should always be asked as a question with a question mark",
+                "Requests for information/feedback should always be asked as one or more questions with question marks",
                 // "DO NOT ask for confirmation or permission to continue your task, navigate, interact, etc."
             ],
             "On Inputting Text": [
