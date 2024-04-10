@@ -320,7 +320,7 @@ class SystemPrompt extends SystemMessage {
                 // "DO NOT ask for confirmation or permission to continue your task, navigate, interact, etc."
             ],
             "On Inputting Text": [
-                "type_in only types into a SINGLE text box that is currently focused with ►",
+                "type_in only types into a SINGLE text box that is currently focused with ► (except for rare exceptions lik Wordle)",
                 "\\n is the equivalent of keyboard enter, but NEVER focuses a different input",
                 "The text box with focus will have the ► character in it, and selected/checked elements will have ☑ in them",
                 "Always use click_on to focus the input/textarea/combobox prior to using type_in each time",

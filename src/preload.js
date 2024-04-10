@@ -9,3 +9,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setSpinner: (callback) => ipcRenderer.on('set-spinner', callback),
     updatePriceBox: (callback) => ipcRenderer.on('update-price-box', callback),
 });
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Select the div with the specific class or ID
+    const navElement = document.querySelector('.screencast-navigation');
+    if (navElement) {
+      // Remove the div from the DOM
+      navElement.remove();
+    }
+  });
+  

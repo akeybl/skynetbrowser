@@ -68,6 +68,7 @@ function createMainWindow() {
     webPreferences: {
       backgroundThrottling: false,
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegrationInSubFrames: true
     },
     resizable: false
   });
@@ -103,7 +104,7 @@ async function initializeComponents() {
 
 async function setupBrowserConnection(pageName) {
   const browser = await pie.connect(app, puppeteer);
-  const browserPage = await createBrowserPage(pie, browser, pageName, false, "Pixel 5", false, false);
+  const browserPage = await createBrowserPage(pie, browser, pageName, true, "Pixel 5", false, false);
   return {
     browserPage: browserPage,
     portalURL: await browserPage.getPortalURL()
@@ -168,6 +169,8 @@ async function main() {
 
   const { browserPage, portalURL } = await setupBrowserConnection(pageName);
   
+  console.log("Portal URL:", portalURL);
+
   // clearCookiesAndStorage(browserPage);
   const mainWindow = setupMainWindow(portalURL);
 
@@ -326,7 +329,7 @@ goto_url: https://www.google.com/`
       const a = new Action();
       var params = await a.execute(browserPage);
 
-      params["Notice"] = "Your message was received by the user. Continue with your task by making a function call or call sleep: forever if you never plan to do anything for the user in the future.";
+      params["Notice"] = "Your message was received by the user. Continue with any incomplete tasks by making a function call or call sleep: forever if you never plan to do anything for the user in the future.";
       // params["Next Steps"] = "Continue your task.";
 
       appMessage = new AppMessage(params);

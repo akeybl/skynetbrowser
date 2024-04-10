@@ -39,6 +39,7 @@
     "puppeteer": "^22.6.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-adblocker": "^2.13.6",
+    "puppeteer-extra-plugin-portal": "^3.2.1",
     "puppeteer-extra-plugin-session": "^1.0.1",
     "puppeteer-in-electron": "^3.0.5",
     "tiktoken": "^1.0.13",
