@@ -96,10 +96,6 @@ class BrowserPage {
     
         this.client = await this.page.target().createCDPSession();
     
-        this.page.on('close', () => {
-            console.log("Page closed");
-        });
-
         if (this.history.length > 0) {
             console.log("Going to last navigated page:",this.history[this.history.length-1].url);
             await this.page.goto(this.history[this.history.length-1].url);

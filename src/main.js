@@ -188,14 +188,6 @@ async function main() {
   // only for electron-widevinecdm
   // await initializeComponents();
 
-  powerMonitor.on('suspend', () => {
-    console.log('The system is going to sleep');
-  });
-
-  powerMonitor.on('resume', () => {
-    console.log('The system has been resumed');
-  });
-
   // clearCookiesAndStorage(browserPage);
   const mainWindow = setupMainWindow();
 
