@@ -109,8 +109,8 @@ class BrowserPage {
             await this.asyncInit();
         });
 
-        await delay(1000);
-        
+        await delay(500);
+
         await this.mainWindow.webContents.send('load-url', await this.getPortalURL());
     }
 
