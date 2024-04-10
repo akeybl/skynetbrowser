@@ -2,6 +2,8 @@ const os = require('os');
 const tiktoken = require("tiktoken");
 const OpenAI = require("openai");
 const { MODEL, MAX_WRITE_TOKENS, OPENAI_KEY, OPENROUTER_API_KEY, SMART_MODEL, SMART_MAX_WRITE_TOKENS, DUMB_MODEL, DUMB_MAX_WRITE_TOKENS } = require('./globals.js');
+const parser = require('any-date-parser');
+const moment = require('moment-timezone');
 
 const isMac = os.platform() === "darwin";
 const isWindows = os.platform() === "win32";
@@ -67,9 +69,17 @@ function isValidUrl(url) {
     }
 }
 
-function delay(time) {
-    return new Promise(function (resolve) {
-        setTimeout(resolve, time)
+function delay(time, abortController=null) {
+    return new Promise(function (resolve, reject) {
+        const timer = setTimeout(resolve, time);
+
+        // Check if the abortController is provided and listen for the abort signal
+        if (abortController) {
+            abortController.signal.addEventListener('abort', () => {
+                clearTimeout(timer); // Cancel the timeout
+                reject(new DOMException('Aborted', 'AbortError')); // Reject the promise
+            });
+        }
     });
 }
 
@@ -78,26 +88,15 @@ async function randomDelay(min, max) {
 }
 
 function formatDate(date) {
-    // Extracting components from the date
-    let day = date.getDate();
-    let month = date.getMonth() + 1; // Months are 0-indexed
-    let year = date.getFullYear().toString().substr(-2); // Get last 2 digits of year
-    let hour = date.getHours();
-    let minute = date.getMinutes();
-    let ampm = hour >= 12 ? 'pm' : 'am';
+    var options = {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+    };
 
-    // Converting 24h time to 12h time format
-    hour = hour % 12;
-    hour = hour ? hour : 12; // the hour '0' should be '12'
-
-    // Ensuring two-digit minute format
-    minute = minute < 10 ? '0' + minute : minute;
-
-    // Getting the current time zone name
     let timeZoneName = new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(date).split(', ')[1];
 
-    // Formatting the string with time zone
-    return `${month}/${day}/${year} ${hour}:${minute}${ampm} ${timeZoneName}`;
+    return `${date.toLocaleString('en-US', options)} ${timeZoneName}`;
 }
 
 function getRandomInt(min, max) {
@@ -113,10 +112,10 @@ function hasQuestion(string) {
     if (lines.length > 0) {
         const lastLine = lines[lines.length - 1];
         if (lastLine.includes('?'))
-            // || lastLine.toLowerCase().includes('please let') ||
-            // lastLine.toLowerCase().includes('let me')) {
+        // || lastLine.toLowerCase().includes('please let') ||
+        // lastLine.toLowerCase().includes('let me')) {
         {
-                return true;
+            return true;
         }
     }
 
@@ -132,7 +131,7 @@ async function getResult(signal, chain, smart) {
         maxWriteTokens = DUMB_MAX_WRITE_TOKENS;
     }
 
-    if(model.includes("/")) {
+    if (model.includes("/")) {
         try {
             while (true) {
                 this.response = await openRouterClient.chat.completions.create({
@@ -184,4 +183,24 @@ async function getResult(signal, chain, smart) {
 
 }
 
-module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate, ttokLength, hasQuestion, getResult };
+function extractNumberFromString(inputString) {
+    const firstNumberRegex = /\b(\d+)\b/;
+    const match = inputString.match(firstNumberRegex);
+
+    if (match) {
+        return parseInt(match[1], 10);
+    }
+
+    return null; // or 0, depending on how you want to handle strings without numbers
+}
+
+function millisecondsUntil(date) {
+    const now = moment();
+    return Math.abs(now.diff(date));
+}
+
+function convertStringToDate(dateTimeString) {
+    return parser.fromString(dateTimeString);
+}
+
+module.exports = { isMac, isWindows, isLinux, delay, randomDelay, formatDate, getRandomInt, isValidUrl, ttokTruncate, ttokLength, hasQuestion, getResult, extractNumberFromString, convertStringToDate, millisecondsUntil };

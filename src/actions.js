@@ -1,4 +1,4 @@
-const { randomDelay, isValidUrl, ttokTruncate, ttokLength } = require("./utilities.js");
+const { randomDelay, isValidUrl, ttokTruncate, ttokLength, extractNumberFromString, convertStringToDate, delay, millisecondsUntil } = require("./utilities.js");
 const { PAGE_TOKEN_LENGTH, DUMB_MODEL, DUMB_MAX_WRITE_TOKENS, DUMB_PROMPT_COST, DUMB_COMPLETION_COST } = require("./globals.js");
 const { getResult } = require("./utilities.js");
 
@@ -8,6 +8,7 @@ class Action {
         this.actionText = actionText;
         this.returnParams = {};
         this.blocking = false;
+        this.noSpinner = false;
         this.urlAfterExecute = null;
         this.fullTextAfterExecute = null;
         this.pageTextAfterExecute = null;
@@ -15,8 +16,6 @@ class Action {
     }
 
     async execute(browserPage, abortController = null) {
-        // throw new Error('Execute method must be implemented by subclasses');
-
         this.urlAfterExecute = await browserPage.page.url();
 
         let pageURL = this.urlAfterExecute;
@@ -57,7 +56,7 @@ class Action {
             this.returnParams[`Notice`] = `Message anything from Find Results that you will need to use in the future or it will no longer be available to you.`
         }
         else {
-            this.returnParams[`Notice`] = `Page Text is incomplete and should only be used for navigation and interaction. You must use find_in_page_text in all other cases, as it has access to all ${fullTextPages} pages and link URLs.`
+            this.returnParams[`Notice`] = `Page Text is incomplete and should NOT be used to provide markdown links to the user. You must use find_in_page_text for that purpose, as it has access to all ${fullTextPages} pages and link URLs.`
         }
 
         return this.returnParams;
@@ -140,9 +139,8 @@ class ClickOnAction extends Action {
             await browserPage.clickClosestText(this.actionText);
             this.returnParams["Outcome"] = `${CLICK_ON} operation complete.`;
         }
-        catch {
-            console.log("No matching text found.");
-            this.returnParams["Error"] = `No text matching ${this.actionText} found.`
+        catch(e) {
+            this.returnParams["Error"] = `${e}`;
         }
 
         await randomDelay(4000, 5000);
@@ -168,12 +166,28 @@ class TypeInAction extends Action {
 class SleepAction extends Action {
     constructor(action, actionText) {
         super(action, actionText);
-        this.blocking = true;
+
+        if(actionText.toLowerCase() == "forever") {
+            this.blocking = true;
+        }
+        else {
+            this.noSpinner = true;
+        }
     }
 
     async execute(browserPage, abortController=null) {
-        console.log(`Sleeping for: ${this.actionText} milliseconds`);
-        // XXX: Not yet implemented
+        let sleepTimeSeconds = extractNumberFromString(this.actionText);
+
+        console.log(`Sleeping for: ${sleepTimeSeconds} milliseconds`);
+
+        try {
+            await delay(sleepTimeSeconds * 1000, abortController);
+            this.returnParams["Outcome"] = `Sleep was completed successfully.`;
+        }
+        catch (e) {
+            this.returnParams["WARNING"] = `Sleep was INTERRUPTED before complete and was therefore unsuccessful. It is likely that you will need to call sleep again.`;
+        }
+
         return await super.execute(browserPage, abortController);
     }
 }
@@ -181,12 +195,25 @@ class SleepAction extends Action {
 class SleepUntilAction extends Action {
     constructor(action, actionText) {
         super(action, actionText);
-        this.blocking = true;
+        this.noSpinner = true;
     }
 
     async execute(browserPage, abortController=null) {
-        console.log(`Sleeping until: ${this.actionText} (a specific condition is met)`);
-        // XXX: Not yet implemented
+        let sleepTill = convertStringToDate(this.actionText);
+        console.log("Parsed date:", sleepTill);
+
+        let difference = millisecondsUntil(sleepTill);
+        
+        console.log(`Sleeping until: ${sleepTill}, or ${difference}ms from now`);
+
+        try {
+            await delay(difference, abortController);
+            this.returnParams["Outcome"] = `Sleep was completed successfully.`;
+        }
+        catch (e) {
+            this.returnParams["WARNING"] = `Sleep was INTERRUPTED before complete and was therefore unsuccessful. It is likely that you will need to call sleep_until again.`;
+        }
+
         return await super.execute(browserPage, abortController);
     }
 }
@@ -249,7 +276,11 @@ class FindInPageAction extends Action {
 
         this.cost = this.result.usage.prompt_tokens * DUMB_PROMPT_COST + this.result.usage.completion_tokens * DUMB_COMPLETION_COST;
 
-        this.returnParams["All Find Results"] = await ttokTruncate(resultText, 0, 10000);
+        this.returnParams["All Find Results"] = await ttokTruncate(resultText, 0, 2000);
+
+        if (this.returnParams["All Find Results"] != resultText) {
+            this.returnParams["All Find Results"] += "\n# v TRUNCATED"
+        }
 
         return await super.execute(browserPage, abortController);
     }

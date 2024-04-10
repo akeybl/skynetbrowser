@@ -57,7 +57,7 @@ const { clearSessions } = require("./data-store.js");
 const { UserMessage, AppMessage, SystemPrompt, AIMessage, USER_ROLE, ASSISTANT_ROLE } = require('./chain-messages.js');
 const { AIRequest } = require('./ai-request.js');
 const marked = require('marked');
-const { Action, RequestUserInterventionAction } = require("./actions.js"); // CompletedAction
+const { Action, RequestUserInterventionAction, SleepAction } = require("./actions.js"); // CompletedAction
 
 // END REQUIRES
 
@@ -105,7 +105,7 @@ async function initializeComponents() {
 
 async function setupBrowserConnection(pageName) {
   const browser = await pie.connect(app, puppeteer);
-  const browserPage = await createBrowserPage(pie, browser, pageName, true, "Pixel 5", false, false);
+  const browserPage = await createBrowserPage(pie, browser, pageName, false, "Pixel 5", false, false);
   return {
     browserPage: browserPage,
     portalURL: await browserPage.getPortalURL()
@@ -135,7 +135,7 @@ function setupMainWindow(portalUrl) {
 }
 
 function sendNotificationIfNotShowing(win, message) {
-  if (!win.isFocused()) {
+  if (!win.isFocused() && message.chatMessage.trim() != "") {
     const requiredNotification = new Notification({
       title: "Assistant",
       body: message.chatMessage,
@@ -159,9 +159,9 @@ function sendMessageToRenderer(mainWindow, message) {
   }
 
   if (message.actions && message.actions.length > 0) {
-    // if ( message.actions[0] instanceof CompletedAction ) {
-    // }
-    if ( !(message.actions[0] instanceof RequestUserInterventionAction) ) {
+    if ( message.actions[0] instanceof SleepAction && message.actions[0].blocking ) {
+    }
+    else if ( !(message.actions[0] instanceof RequestUserInterventionAction) ) {
       // console.log(`XXX: ${message.actions[0].action} vs ${REQUEST_USER_INTERVENTION}`);
       mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].action}: ${message.actions[0].actionText}`), type: 'info' });
     }
@@ -341,6 +341,10 @@ goto_url: https://www.google.com/`
         appMessageParams["WARNING"] = `Only the first action, ${aiResponse.actions[0].action}, is addressed by this message. All other actions were ignored and need to be sent again if still appropriate.`
       }
 
+      if (aiResponse.actions[0].noSpinner) {
+        mainWindow.webContents.send('set-spinner', false);
+      }
+
       const executeResult = await aiResponse.actions[0].execute(browserPage, abortController);
 
       if (!executeResult) {
@@ -361,7 +365,7 @@ goto_url: https://www.google.com/`
       const a = new Action();
       var params = await a.execute(browserPage);
 
-      params["Notice"] = "Your message was received by the user. Continue with any incomplete tasks by making a function call or call sleep: forever if you never plan to do anything for the user in the future.";
+      params["Notice"] = "Your message was received by the user. You MUST make a function call in your next message. Call sleep: forever if nothing remains to be done to address the plan in the future.";
       // params["Next Steps"] = "Continue your task.";
 
       appMessage = new AppMessage(params);

@@ -156,10 +156,10 @@ async function clickClosestAriaName(client, page, cursor, label) {
             await clickElement(page, cursor, element);    
         }
         else {
-            throw new Error(`Score below threshold`);
+            throw new Error(`No match found for ${label}. Closest match was ${result[0].item.key}.`);
         }
     } else {
-        throw new Error(`No match found for ${label}`);
+        throw new Error(`No match found for ${label}.`);
     }
     // XXX: NEED TO FINISH
 }

@@ -248,9 +248,12 @@ class AppMessage extends YAMLMessage {
             toDelete.push("Notice");
         }
 
+        if (messageIndex > 1) {
+            parsedOut.push("All Find Results");
+        }
+
         if (messageIndex > 0) {
             parsedOut.push("Page Text");
-            parsedOut.push("All Find Results");
         }
 
         var minifiedParams = this.yamlParams;
