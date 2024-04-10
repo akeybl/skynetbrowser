@@ -9,7 +9,7 @@ Object.assign(console, log.functions);
 log.errorHandler.startCatching();
 
 // https://github.com/castlabs/electron-releases for widevine support
-const { app, components, BrowserWindow, session, ipcMain, shell } = require('electron');
+const { app, components, BrowserWindow, session, ipcMain, shell, Notification } = require('electron');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -22,6 +22,7 @@ const path = require('node:path');
 
 const pie = require('puppeteer-in-electron');
 pie.initialize(app);
+let willQuitApp = false;
 
 const puppeteerVanilla = require('puppeteer-core');
 const { addExtra } = require('puppeteer-extra');
@@ -120,8 +121,10 @@ function setupMainWindow(portalUrl) {
 
   mainWindow.on('close', (e) => {
     // Prevent the default close operation
-    e.preventDefault();
-    mainWindow.hide(); // Hide the window instead of closing it
+    if (!willQuitApp) {
+      e.preventDefault();
+      mainWindow.hide(); // Hide the window instead of closing it
+    }
   });
 
   app.on('activate', () => {
@@ -129,6 +132,23 @@ function setupMainWindow(portalUrl) {
   });
 
   return mainWindow;
+}
+
+function sendNotificationIfNotShowing(win, message) {
+  if (!win.isFocused()) {
+    const requiredNotification = new Notification({
+      title: "Assistant",
+      body: message.chatMessage,
+      timeoutType: 'never',
+      urgency: 'critical'
+    });
+
+    requiredNotification.on("click", () => {
+      win.show();
+    });
+
+    requiredNotification.show();
+  }
 }
 
 function sendMessageToRenderer(mainWindow, message) {
@@ -310,6 +330,7 @@ goto_url: https://www.google.com/`
     }
 
     sendMessageToRenderer(mainWindow, aiResponse);
+    sendNotificationIfNotShowing(mainWindow, aiResponse);
 
     var appMessage = null;
 
@@ -366,3 +387,5 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
+app.on('before-quit', () => willQuitApp = true);
