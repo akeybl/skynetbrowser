@@ -16,18 +16,19 @@ class HistoryEntry {
 }
 
 class BrowserPage {
-    constructor(pie, browser, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
+    constructor(app, puppeteer, pie, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
+        this.app = app;
+        this.puppeteer = puppeteer;
         this.pie = pie;
-        this.browser = browser;
         this.pageID = pageID;
         this.partitioned = partitioned;
         this.device = puppeteerVanilla.KnownDevices[device];
 
+        this.browser = null;
         this.page = null;
         this.cursor = null;
         this.client = null;
         this.history = [];
-        this.pageHistory = [];
 
         this.textPage = 1;
 
@@ -71,6 +72,36 @@ class BrowserPage {
                 this.history.push(new HistoryEntry(url, true));
             }
         });
+    }
+
+    async asyncInit() {
+        this.browser = await this.pie.connect(this.app, this.puppeteer);
+        
+        this.page = await this.pie.getPage(this.browser, this.window);
+        await this.restoreSession();
+    
+        this.cursor = ghostCursor.createCursor(this.page);
+    
+        if (DEV_MODE) {
+            this.page.on('framenavigated', async frame => {
+                if (frame === this.page.mainFrame()) {
+                    ghostCursor.installMouseHelper(this.page);
+                }
+            });
+        }
+    
+        await this.page.emulate(this.device);
+    
+        this.client = await this.page.target().createCDPSession();
+    
+        this.page.on('close', () => {
+            console.log("Page closed");
+        });
+
+        if (this.history.length > 0) {
+            console.log("Going to last navigated page:",this.history[this.history.length-1].url);
+            await this.page.goto(this.history[this.history.length-1].url);
+        }
     }
 
     async getPortalURL() {
@@ -138,27 +169,11 @@ class BrowserPage {
         }
     }
 }
-
-async function createBrowserPage(pie, browser, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
-    const bp = new BrowserPage(pie, browser, pageID, partitioned, device, show, muted);
-
-    bp.page = await pie.getPage(browser, bp.window);
-    await bp.restoreSession();
-
-    bp.cursor = ghostCursor.createCursor(bp.page);
-
-    if (DEV_MODE) {
-        bp.page.on('framenavigated', async frame => {
-            if (frame === bp.page.mainFrame()) {
-                ghostCursor.installMouseHelper(bp.page);
-            }
-        });
-    }
-
-    await bp.page.emulate(bp.device);
-
-    bp.client = await bp.page.target().createCDPSession();
-
+  
+async function createBrowserPage(app, puppeteer, pie, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
+    const bp = new BrowserPage(app, puppeteer, pie, pageID, partitioned, device, show, muted);
+    await bp.asyncInit();
+        
     return bp;
 }
 

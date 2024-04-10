@@ -9,7 +9,7 @@ Object.assign(console, log.functions);
 log.errorHandler.startCatching();
 
 // https://github.com/castlabs/electron-releases for widevine support
-const { app, components, BrowserWindow, session, ipcMain, shell, Notification } = require('electron');
+const { app, BrowserWindow, session, ipcMain, shell, Notification, powerMonitor } = require('electron'); // components
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -98,19 +98,10 @@ function clearCookiesAndStorage(pageName) {
   clearSessions();
 }
 
-async function initializeComponents() {
-  await components.whenReady();
-  console.log('components ready:', components.status());
-}
-
-async function setupBrowserConnection(pageName) {
-  const browser = await pie.connect(app, puppeteer);
-  const browserPage = await createBrowserPage(pie, browser, pageName, false, "Pixel 5", false, false);
-  return {
-    browserPage: browserPage,
-    portalURL: await browserPage.getPortalURL()
-  };
-}
+// async function initializeComponents() {
+//   await components.whenReady();
+//   console.log('components ready:', components.status());
+// }
 
 function setupMainWindow(portalUrl) {
   const mainWindow = createMainWindow();
@@ -159,9 +150,9 @@ function sendMessageToRenderer(mainWindow, message) {
   }
 
   if (message.actions && message.actions.length > 0) {
-    if ( message.actions[0] instanceof SleepAction && message.actions[0].blocking ) {
+    if (message.actions[0] instanceof SleepAction && message.actions[0].blocking) {
     }
-    else if ( !(message.actions[0] instanceof RequestUserInterventionAction) ) {
+    else if (!(message.actions[0] instanceof RequestUserInterventionAction)) {
       // console.log(`XXX: ${message.actions[0].action} vs ${REQUEST_USER_INTERVENTION}`);
       mainWindow.webContents.send('receive-message', { html: marked.parse(`${message.actions[0].action}: ${message.actions[0].actionText}`), type: 'info' });
     }
@@ -187,33 +178,49 @@ function setPriceInWindow(mainWindow, messageChain) {
   const totalCost = costs.reduce((accumulator, currentValue) => {
     return accumulator + currentValue;
   }, 0); // Initial value of the accumulator is 0
-  
+
   if (costs.length > 0) {
-    mainWindow.webContents.send('update-price-box', { totalCost: totalCost, lastCost: costs[costs.length-1] });
+    mainWindow.webContents.send('update-price-box', { totalCost: totalCost, lastCost: costs[costs.length - 1] });
   }
 }
 
 async function main() {
-  await initializeComponents();
+  // only for electron-widevinecdm
+  // await initializeComponents();
+
+  powerMonitor.on('suspend', () => {
+    console.log('The system is going to sleep');
+  });
+
+  powerMonitor.on('resume', () => {
+    console.log('The system has been resumed');
+  });
 
   const pageName = "test";
 
-  const { browserPage, portalURL } = await setupBrowserConnection(pageName);
-  
-  console.log("Portal URL:", portalURL);
+  const browserPage = await createBrowserPage(app, puppeteer, pie, pageName, false, "Pixel 5", false, false);
+
+  console.log("Portal URL:", await browserPage.getPortalURL());
 
   // clearCookiesAndStorage(browserPage);
-  const mainWindow = setupMainWindow(portalURL);
+  const mainWindow = setupMainWindow(await browserPage.getPortalURL());
+
+  browserPage.browser.on('disconnected', async () => {
+    await browserPage.asyncInit();
+    await delay(1000);
+    mainWindow.webContents.send('load-url', await browserPage.getPortalURL());
+  });
 
   var abortController = new AbortController();
 
   await browserPage.page.goto("https://www.google.com/");
-  
+
   let messageChain = [
-    new SystemPrompt("Alex", "Virginia"), 
-    new AIMessage( {
+    new SystemPrompt("Alex", "Virginia"),
+    new AIMessage({
       choices: [
-        { message: {
+        {
+          message: {
             content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of your request.
 
 goto_url: https://www.google.com/`
@@ -224,12 +231,12 @@ goto_url: https://www.google.com/`
         prompt_tokens: 0,
         completion_tokens: 0
       }
-    } ) ];
+    })];
   let newUserMessages = [];
 
   ipcMain.on('reset-messages', (event) => {
     for (let i = 0; i < messageChain.length; i++) {
-      if(i > 1) {
+      if (i > 1) {
         const message = messageChain[i];
         sendMessageToRenderer(mainWindow, message);
         setPriceInWindow(mainWindow, messageChain)
@@ -253,7 +260,7 @@ goto_url: https://www.google.com/`
     mainWindow.webContents.send('set-spinner', false);
 
     while (true) {
-      if (goAgain || newUserMessages.length > 0) {      
+      if (goAgain || newUserMessages.length > 0) {
         break;
       }
 
@@ -276,7 +283,7 @@ goto_url: https://www.google.com/`
 
     messageChain = messageChain.concat(newUserMessages);
     newUserMessages = [];
-    
+
     const request = new AIRequest(abortController, messageChain);
     var aiResponse = await request.getResult();
 
@@ -301,7 +308,7 @@ goto_url: https://www.google.com/`
 
         gotGoalStart = true;
 
-        if( line.trim() == "" || line.toLowerCase().includes('open question') ) {
+        if (line.trim() == "" || line.toLowerCase().includes('open question')) {
           continue;
         }
 

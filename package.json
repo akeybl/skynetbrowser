@@ -1,6 +1,6 @@
 {
   "name": "Sky Netbrowser",
-  "productName": "skynetbrowser",
+  "productName": "Sky Netbrowser",
   "version": "0.0.1",
   "description": "Effective chat agent with access to a web browser.",
   "main": "src/main.js",
@@ -20,7 +20,7 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.3.1",
     "@electron-forge/plugin-fuses": "^7.3.1",
     "@electron/fuses": "^1.7.0",
-    "electron": "github:castlabs/electron-releases#v29.0.0+wvcus"
+    "electron": "^29.3.0"
   },
   "keywords": [],
   "author": {
@@ -30,6 +30,7 @@
   "license": "MIT",
   "dependencies": {
     "any-date-parser": "^1.5.4",
+    "electron": "^29.3.0",
     "electron-log": "^5.1.2",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.2.0",

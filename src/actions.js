@@ -108,20 +108,6 @@ class GoBackAction extends Action {
     }
 }
 
-class GoForwardAction extends Action {
-    async execute(browserPage, abortController = null) {
-        console.log(`Going forward in browser history`);
-
-        await browserPage.page.goForward();
-
-        this.returnParams["Outcome"] = `${GO_FORWARD} operation complete.`;
-
-        await randomDelay(2000, 3000);
-
-        return await super.execute(browserPage, abortController);
-    }
-}
-
 class ReloadAction extends Action {
     async execute(browserPage, abortController = null) {
         console.log(`Reloading the page`);
@@ -301,9 +287,6 @@ actionClasses[GOTO_URL] = GotoUrlAction;
 const GO_BACK = "go_back";
 actionClasses[GO_BACK] = GoBackAction;
 
-const GO_FORWARD = "go_forward";
-actionClasses[GO_FORWARD] = GoForwardAction;
-
 const RELOAD = "reload";
 actionClasses[RELOAD] = ReloadAction;
 
@@ -325,4 +308,4 @@ actionClasses[TYPE_IN] = TypeInAction;
 const FIND_IN_PAGE = "find_in_page_text";
 actionClasses[FIND_IN_PAGE] = FindInPageAction;
 
-module.exports = { Action, GotoUrlAction, GoBackAction, GoForwardAction, ReloadAction, ClickOnAction, TypeInAction, SleepAction, SleepUntilAction, TypeInAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction };
+module.exports = { Action, GotoUrlAction, GoBackAction, ReloadAction, ClickOnAction, TypeInAction, SleepAction, SleepUntilAction, TypeInAction, RequestUserInterventionAction, TYPE_IN, actionClasses, FindInPageAction };
