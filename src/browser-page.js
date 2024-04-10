@@ -4,6 +4,7 @@ const ghostCursor = require("ghost-cursor");
 const { DEV_MODE } = require("./globals.js");
 const { storeSessionStr, getSessionStr } = require("./data-store.js");
 const { getAriaElementsText, clickClosestAriaName, keyboardType, keyboardPress } = require('./page-utilities.js');
+const { delay } = require('./utilities.js');
 
 class HistoryEntry {
     constructor(url, inPage = false) {
@@ -16,8 +17,9 @@ class HistoryEntry {
 }
 
 class BrowserPage {
-    constructor(app, puppeteer, pie, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
+    constructor(app, mainWindow, puppeteer, pie, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
         this.app = app;
+        this.mainWindow = mainWindow;
         this.puppeteer = puppeteer;
         this.pie = pie;
         this.pageID = pageID;
@@ -102,6 +104,14 @@ class BrowserPage {
             console.log("Going to last navigated page:",this.history[this.history.length-1].url);
             await this.page.goto(this.history[this.history.length-1].url);
         }
+
+        this.browser.on('disconnected', async () => {
+            await this.asyncInit();
+        });
+
+        await delay(1000);
+        
+        await this.mainWindow.webContents.send('load-url', await this.getPortalURL());
     }
 
     async getPortalURL() {
@@ -170,8 +180,8 @@ class BrowserPage {
     }
 }
   
-async function createBrowserPage(app, puppeteer, pie, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
-    const bp = new BrowserPage(app, puppeteer, pie, pageID, partitioned, device, show, muted);
+async function createBrowserPage(app, mainWindow, puppeteer, pie, pageID, partitioned = false, device = 'Pixel 5', show = false, muted = true) {
+    const bp = new BrowserPage(app, mainWindow, puppeteer, pie, pageID, partitioned, device, show, muted);
     await bp.asyncInit();
         
     return bp;

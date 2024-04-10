@@ -103,10 +103,10 @@ function clearCookiesAndStorage(pageName) {
 //   console.log('components ready:', components.status());
 // }
 
-function setupMainWindow(portalUrl) {
+function setupMainWindow() {
   const mainWindow = createMainWindow();
   mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.send('load-url', portalUrl);
+    // mainWindow.webContents.send('load-url', portalUrl);
     mainWindow.webContents.send('set-overlay', true);
   });
 
@@ -196,20 +196,14 @@ async function main() {
     console.log('The system has been resumed');
   });
 
+  // clearCookiesAndStorage(browserPage);
+  const mainWindow = setupMainWindow();
+
   const pageName = "test";
 
-  const browserPage = await createBrowserPage(app, puppeteer, pie, pageName, false, "Pixel 5", false, false);
+  const browserPage = await createBrowserPage(app, mainWindow, puppeteer, pie, pageName, false, "Pixel 5", false, false);
 
   console.log("Portal URL:", await browserPage.getPortalURL());
-
-  // clearCookiesAndStorage(browserPage);
-  const mainWindow = setupMainWindow(await browserPage.getPortalURL());
-
-  browserPage.browser.on('disconnected', async () => {
-    await browserPage.asyncInit();
-    await delay(1000);
-    mainWindow.webContents.send('load-url', await browserPage.getPortalURL());
-  });
 
   var abortController = new AbortController();
 
