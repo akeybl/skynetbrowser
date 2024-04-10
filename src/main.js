@@ -117,6 +117,17 @@ function setupMainWindow(portalUrl) {
     mainWindow.webContents.send('load-url', portalUrl);
     mainWindow.webContents.send('set-overlay', true);
   });
+
+  mainWindow.on('close', (e) => {
+    // Prevent the default close operation
+    e.preventDefault();
+    mainWindow.hide(); // Hide the window instead of closing it
+  });
+
+  app.on('activate', () => {
+    mainWindow.show();
+  });
+
   return mainWindow;
 }
 

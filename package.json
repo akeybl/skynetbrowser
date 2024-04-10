@@ -1,8 +1,8 @@
 {
-  "name": "aibrowser",
-  "productName": "aibrowser",
-  "version": "1.0.0",
-  "description": "My Electron application description",
+  "name": "Sky Netbrowser",
+  "productName": "skynetbrowser",
+  "version": "0.0.1",
+  "description": "Effective chat agent with access to a web browser.",
   "main": "src/main.js",
   "scripts": {
     "start": "electron-forge start",
