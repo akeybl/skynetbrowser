@@ -36,7 +36,7 @@ async function clickElement(page, cursor, element) {
 
     // await cursor.click(element)
     // await page.mouse.click(insideX, insideY);
-    await element.click();
+    await element.tap();
 }
 
 async function keyboardType(page, text) {
