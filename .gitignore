@@ -81,6 +81,8 @@ web_modules/
 .env.production.local
 .env.local
 
+build-scripts/AuthKey_AUVC99HHCV.p8
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

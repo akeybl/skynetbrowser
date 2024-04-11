@@ -1,9 +1,23 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+require('dotenv').config();
 
 module.exports = {
   packagerConfig: {
     asar: true,
+    osxSign: {
+      identity: process.env.SIGN_ID,
+      "hardened-runtime": true,
+      entitlements: "build-scripts/entitlements.plist",
+      "entitlements-inherit": "build-scripts/entitlements.plist",
+      "signature-flags": "library"
+    },
+    osxNotarize: {
+      tool: 'notarytool',
+      "appleApiKey": process.env.API_KEY,
+      "appleApiKeyId": process.env.API_KEY_ID,
+      "appleApiIssuer": process.env.API_KEY_ISSUER
+    }
   },
   rebuildConfig: {},
   makers: [
