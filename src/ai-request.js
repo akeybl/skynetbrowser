@@ -1,5 +1,6 @@
 const { AIMessage, AppMessage, UserMessage, SystemPrompt, SystemMessage } = require('./chain-messages.js');
 const { delay, getResult } = require('./utilities.js');
+require('dotenv').config();
 
 class AIRequest {
     constructor(abortController, messageChain) {

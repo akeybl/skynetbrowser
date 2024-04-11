@@ -10,17 +10,12 @@ const isWindows = os.platform() === "win32";
 const isLinux = os.platform() === "linux";
 
 const openAIClient = new OpenAI({
-    apiKey: OPENAI_KEY,
+    apiKey: process.env.OPENAI_KEY,
 });
 
 const openRouterClient = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
-    apiKey: OPENROUTER_API_KEY,
-    // defaultHeaders: {
-    //     "HTTP-Referer": $YOUR_SITE_URL, // Optional, for including your app on openrouter.ai rankings.
-    //     "X-Title": $YOUR_SITE_NAME, // Optional. Shows in rankings on openrouter.ai.
-    // },
-    // dangerouslyAllowBrowser: true,
+    apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 async function ttokLength(inputString) {

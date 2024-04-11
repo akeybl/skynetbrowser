@@ -56,7 +56,7 @@ class Action {
             this.returnParams[`Notice`] = `Message anything from Find Results that you will need to use in the future or it will no longer be available to you.`
         }
         else {
-            this.returnParams[`Notice`] = `Page Text is incomplete and CANNOT be used to message markdown links to the user. You MUST use find_in_page_text for that purpose, as it has access to all ${fullTextPages} pages and link URLs.`
+            this.returnParams[`Notice`] = `Page Text is meant for fast navigation/clicks/interaction and should not be used to message markdown links to the user. You MUST use find_in_page_text for that purpose, as it has access to all ${fullTextPages} pages and link URLs.`
         }
 
         return this.returnParams;

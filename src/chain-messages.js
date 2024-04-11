@@ -286,7 +286,7 @@ class SystemMessage extends YAMLMessage {
 }
 
 class SystemPrompt extends SystemMessage {
-    constructor(userName, userLocation, date = null) {
+    constructor(userName=null, userLocation=null, date = null) {
         const initialDate = date || new Date();
         const yamlParams = {
             "Your Role": [
@@ -296,8 +296,8 @@ class SystemPrompt extends SystemMessage {
                 "If the user asks for an email, you are able to send an email and include information from your previous messages. First navigate to the user's email service and then continue from there.",
                 "Whenever the plan changes based on a user's direct message, message with an updated plan including goal and numbered step-by-step plan for addressing the user request (see 'On Planning')",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
-                "Use find_in_page_text to include markdown links in your responses, especially with articles, social posts, etc.",
-                "find_in_page_text is the best way to get information you need from the full current Page Text",
+                // "Use find_in_page_text to include markdown links in your responses, especially with articles, social posts, etc.",
+                // "find_in_page_text is the best way to get information you need from the full current Page Text",
                 "You will be rewarded with appreciation and praise if you do not ask for permission to continue, confirmation, review of a plan, etc.",
                 "Don't ever repeat previous assistant messages",
                 "Use the sleep function with a time of forever if there's no further planned steps",
@@ -356,10 +356,18 @@ class SystemPrompt extends SystemMessage {
                 "Each of your messages can contain at most ONE function call, any additional function calls will be ignored",
                 "A function call should be on its own line, and the line should start with the function name. It should have the following format:\n\nfunction_name: input text"
             ],
-            "User Name": userName,
-            "General User Location": `${userLocation} - ask the user for a more precise location when utilizing location`,
+            // "User Name": userName,
+            // "General User Location": `${userLocation} - ask the user for a more precise location when utilizing location`,
             "Start Date and Time": formatDate(initialDate),
             "Goal & Plan for Interacting with Mobile Browser": "no goal/plan yet"
+        }
+
+        if(userName) {
+            yamlParams["User Name"] = userName;
+        }
+
+        if(userLocation) {
+            yamlParams["General User Location"] = `${userLocation} - ask the user for a more precise location when utilizing location`;
         }
 
         super(yamlParams, initialDate);

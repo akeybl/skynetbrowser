@@ -5,6 +5,7 @@ require('dotenv').config();
 module.exports = {
   packagerConfig: {
     asar: true,
+    // thanks to https://medium.com/ascentic-technology/getting-an-electron-app-ready-for-macos-distribution-2941fce27450
     osxSign: {
       identity: process.env.SIGN_ID,
       "hardened-runtime": true,

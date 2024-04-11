@@ -199,25 +199,27 @@ async function main() {
 
   var abortController = new AbortController();
 
-  await browserPage.page.goto("https://www.google.com/");
+  // await browserPage.page.goto("https://www.google.com/");
 
-  let messageChain = [
-    new SystemPrompt("Alex", "Virginia"),
-    new AIMessage({
-      choices: [
-        {
-          message: {
-            content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of your request.
+  let messageChain = [new SystemPrompt(),];
 
-goto_url: https://www.google.com/`
-          }
-        }
-      ],
-      usage: {
-        prompt_tokens: 0,
-        completion_tokens: 0
-      }
-    })];
+//   let messageChain = [
+//     new SystemPrompt("Alex", "Virginia"),
+//     new AIMessage({
+//       choices: [
+//         {
+//           message: {
+//             content: `I will prepare for the user request by going to the Google homepage, which is often a good starting point for searching as part of your request.
+
+// goto_url: https://www.google.com/`
+//           }
+//         }
+//       ],
+//       usage: {
+//         prompt_tokens: 0,
+//         completion_tokens: 0
+//       }
+//     })];
   let newUserMessages = [];
 
   ipcMain.on('reset-messages', (event) => {
@@ -259,13 +261,13 @@ goto_url: https://www.google.com/`
     goAgain = false
 
     // console.log(messageChain.length);
-    if (messageChain.length == 2) {
-      const act = new Action();
-      var params = await act.execute(browserPage);;
-      params["Notice"] = "Do not use find_in_page_text on this page."
-      const am = new AppMessage(params);
-      messageChain.push(am);
-    }
+    // if (messageChain.length == 2) {
+    //   const act = new Action();
+    //   var params = await act.execute(browserPage);;
+    //   // params["Notice"] = "Do not use find_in_page_text on this page."
+    //   const am = new AppMessage(params);
+    //   messageChain.push(am);
+    // }
 
     messageChain = messageChain.concat(newUserMessages);
     newUserMessages = [];
@@ -358,7 +360,7 @@ goto_url: https://www.google.com/`
       const a = new Action();
       var params = await a.execute(browserPage);
 
-      params["Notice"] = "Your message was received by the user. You MUST make a function call in your next message. Call sleep: forever if nothing remains to be done to address the plan in the future.";
+      params["Notice"] = "Your message was received by the user. If you are blocked on the user, ask them to do something in the form of a question. Otherwise you MUST make a function call in your next message. Call sleep: forever if nothing remains to be done to address the plan in the future.";
       // params["Next Steps"] = "Continue your task.";
 
       appMessage = new AppMessage(params);
