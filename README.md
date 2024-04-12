@@ -11,4 +11,4 @@ If you'd like to use an Open Router model, just change `SMART_MODEL` to the full
 
 # How to Build for Mac
 1) Edit .env according to [these instructions](https://www.rocketride.io/blog/macos-code-sign-notarize-electron-app)
-2) `npm make run`
+2) `npm run make`
