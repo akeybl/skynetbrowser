@@ -1,5 +1,6 @@
 # Current Features
-* Page navigation, element interaction, and page text/link parsing
+* AI-driven page navigation, element interaction, and page text/link parsing
+* Built as a cross-platform Electron app -- Electron is used for both frontend and AI-controlled browser window
 * Observability of AI actions, both in the message thread and by watching the browser
 * Tracks cost of the last AI message, and the total for the current message thread
 * Requests user intervention when it needs authentication/CAPTCHA, but the user can also ask for control
