@@ -33,5 +33,5 @@ If you'd like to use an Open Router model, just change `SMART_MODEL` to the full
 2) `npm run make`
 
 # System Prompts
-* [Main system prompt](src/chain-messages.ts#L289) - planning, navigation, interaction, function calls
-* [Find in page system prompt](src/actions.ts#L253) - sub-agent when trying to find lines in the page relevant to next steps of the main system prompt
+* [Main system prompt](src/chain-messages.ts#L293) - planning, navigation, interaction, function calls
+* [Find in page system prompt](src/actions.ts#L278) - sub-agent when trying to find lines in the page relevant to next steps of the main system prompt
