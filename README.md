@@ -23,6 +23,7 @@ I have decided to open source Sky Netbrowser as I believe it is important for th
 * AI message notifications when the window is minimized/closed
 * Interruption of AI actions are allowed, but interrupted requests are not added to total cost
 * The AI can perform tasks in the future by performing "sleeps"
+* Utilizes adblock to increase speed and reduce "noise" for AI
 
 ## Privacy & Security
 * In its current form, the background browser window is available on `localhost:3000` and does not yet limit connections to localhost
