@@ -139,11 +139,6 @@ export class BrowserPage {
         await thisPage.emulate(this.device);
 
         this.client = await thisPage.target().createCDPSession();
-
-        if (this.history.length > 0) {
-            console.log("Going to last navigated page:", this.history[this.history.length - 1].url);
-            await thisPage.goto(this.history[this.history.length - 1].url);
-        }
         
         thisBrowser.on('disconnected', async () => {
             await this.asyncInit();

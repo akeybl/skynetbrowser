@@ -198,14 +198,14 @@ async function main() {
 
         console.log(`Got AI response: ${aiResponse.fullMessage}`);
 
-        if (aiResponse.fullMessage.indexOf("Goal:") == 0 || aiResponse.fullMessage.indexOf("\nGoal:") != -1) {
+        if (aiResponse.fullMessage.replace("*","").indexOf("Goal:") == 0 || aiResponse.fullMessage.indexOf("\nGoal:") != -1) {
             console.log("Updating system prompt goal");
             const lines = aiResponse.fullMessage.split('\n');
             var goalLines: string[] = [];
 
             var gotGoalStart = false;
             for (let i = lines.length - 1; i >= 0; i--) {
-                const line = lines[i];
+                const line = lines[i].replace("*","");
 
                 if (!gotGoalStart && line.indexOf("Goal:") != 0) {
                     continue;
