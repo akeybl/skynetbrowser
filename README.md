@@ -38,12 +38,12 @@ I have decided to open source Sky Netbrowser as I believe it is important for th
 * **Local LLMs for increased privacy** -- currently blocked only on open source LLM ability
 
 ## How to Change Models
-If you'd like to use an OpenAI model, just change `SMART_MODEL` in src/globals.js to the model name
+If you'd like to use an OpenAI model, just change `SMART_MODEL` in `src/globals.js` to the model name
 
 If you'd like to use an OpenRouter model, just change `SMART_MODEL` to the full model name including `/`
 
 ## How to Build for Mac
-1) Edit .env according to [these instructions](https://www.rocketride.io/blog/macos-code-sign-notarize-electron-app)
+1) Edit `.env` according to [these instructions](https://www.rocketride.io/blog/macos-code-sign-notarize-electron-app)
 2) `npm run make`
 
 ## System Prompts
