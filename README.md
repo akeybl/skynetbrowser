@@ -4,7 +4,7 @@ I have decided to open source Sky Netbrowser as I believe it is important for th
 
 ## Example Use Cases
 * Order me an Uber to the White House when the price goes below $10
-* Every day at this time, find all the AI-related links on hacker news. Then use gmail to send them to user@mailservice.com
+* Every day at this time, find all the AI-related links on Hacker News. Then use gmail to send them to user@mailservice.com
 * At 9am before each upcoming Nationals baseball game, send me a reminder here
 * Every morning check the weather and shortly tell me what I should wear as a man to stay comfortable all day long
 
