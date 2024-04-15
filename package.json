@@ -5,7 +5,7 @@
   "description": "Effective chat agent with access to a web browser.",
   "main": "build/main.js",
   "scripts": {
-    "compile": "tsc && cp -f src/index.html src/index.css build",
+    "compile": "mkdir -p build && tsc && cp -f src/index.html src/index.css build",
     "start": "npm run compile && electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
