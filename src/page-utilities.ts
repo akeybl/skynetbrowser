@@ -88,24 +88,6 @@ async function queryAXTree(
     return filteredNodes;
 }
 
-// async function getAriaElement(client: CDPSession, page: Page, cursor: any, label: string): Promise<ElementHandle | null> {
-//     const axNodes = await queryAXTree(client, label);
-
-//     if (axNodes.length > 0) {
-//         const backendNodeId = axNodes[0].backendDOMNodeId;
-
-//         const htmlElement = await page.$("html");
-//         if (htmlElement) {
-//             return await htmlElement.realm.adoptBackendNode(backendNodeId);
-//         }
-//         else {
-//             return null;
-//         }
-//     } else {
-//         throw new Error(`Unable to find ARIA with label: ${label}`);
-//     }
-// }
-
 async function clickClosestAriaName(client: CDPSession, page: Page, cursor: any, label: string) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
@@ -152,16 +134,6 @@ async function clickClosestAriaName(client: CDPSession, page: Page, cursor: any,
         throw new Error(`No match found for ${label}.`);
     }
 }
-
-// async function clickExactAriaName(client: CDPSession, page: Page, cursor: any, label: string) {
-//     const ariaElement = await getAriaElement(client, page, cursor, label);
-
-//     if (ariaElement) {
-//         await clickElement(page, cursor, ariaElement);
-//     } else {
-//         console.log(`Couldn't find element with label "${label}"`);
-//     }
-// }
 
 async function buildTree(client: CDPSession, frameIdToFrame: { [key: string]: Frame }, frameTree: any = null, nodeIdToNode: { [key: string]: any } | null = null, rootNodeId: string | null = null, frameTopElement: ElementHandle | null = null, nodeId: string | null = null) {
     if (frameTree === null) {
