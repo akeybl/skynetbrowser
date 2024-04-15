@@ -1,16 +1,20 @@
-const { stringify } = require('yaml');
-const { formatDate, hasQuestion } = require("./utilities.js");
-const { Action, actionClasses, TYPE_IN, SET_GOAL, SetGoalAction } = require("./actions.js"); // CompletedAction
-const { MAX_AI_MESSAGES, SMART_PROMPT_COST, SMART_COMPLETION_COST } = require('./globals.js');
+import { stringify } from 'yaml';
+import { formatDate, hasQuestion } from "./utilities";
+import { Action, actionClasses, TYPE_IN } from "./actions";
+import { MAX_AI_MESSAGES, SMART_PROMPT_COST, SMART_COMPLETION_COST } from './globals';
 
-const SYSTEM_ROLE = 'system';
-const USER_ROLE = 'user';
-const ASSISTANT_ROLE = 'assistant';
+export const SYSTEM_ROLE = 'system';
+export const USER_ROLE = 'user';
+export const ASSISTANT_ROLE = 'assistant';
 
-// maybe add DEFINE_TASK
+export class Message {
+    role: string;
+    fullMessage: string;
+    date: Date;
+    chatMessage: string;
+    cost: number;
 
-class Message {
-    constructor(role, fullMessage, date = null) {
+    constructor(role: string, fullMessage: string, date: Date | null = null) {
         this.role = role;
         this.fullMessage = fullMessage;
         this.date = date || new Date();
@@ -22,7 +26,7 @@ class Message {
         return this.cost;
     }
 
-    getMessageForAI() {
+    getMessageForAI(messageIndex: number = -1): { role: string; content: string; } | null {
         return {
             role: this.role,
             content: this.fullMessage
@@ -30,27 +34,33 @@ class Message {
     }
 }
 
-class AIMessage extends Message {
-    constructor(aiResponse, date = null) {
+export class AIMessage extends Message {
+    aiResponse: any;
+    actions: Action[];
+    includesQuestion: boolean;
+    questionText: string | null;
+    hasMarkdown: boolean;
+
+    constructor(aiResponse: any, date: Date | null = null) {
         super(ASSISTANT_ROLE, aiResponse.choices[0].message.content, date);
 
         this.aiResponse = aiResponse;
-        this.actions = null;
-        this.chatMessage = null;
+        this.actions = [];
+        this.chatMessage = "";
         this.includesQuestion = false;
         this.questionText = null;
         this.hasMarkdown = false;
 
-        this.cost = null;
+        this.cost = 0;
 
         this.parseActionsAndMessage();
     }
 
     getCost() {
         if (!this.cost) {
-            return null;
+            return 0;
         }
-        
+
         var finalCost = this.cost;
 
         this.actions.forEach(action => {
@@ -63,11 +73,11 @@ class AIMessage extends Message {
     parseActionsAndMessage() {
         this.cost = this.aiResponse.usage.prompt_tokens * SMART_PROMPT_COST + this.aiResponse.usage.completion_tokens * SMART_COMPLETION_COST;
 
-        const multiLineActions = [TYPE_IN, SET_GOAL];
+        const multiLineActions = [TYPE_IN];
 
         const lines = this.fullMessage.split("\n");
-        let actions = [];
-        let messages = [];
+        let actions: Action[] = [];
+        let messages: string[] = [];
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -75,37 +85,31 @@ class AIMessage extends Message {
             const separatorIndex = line.indexOf(": ");
 
             if (separatorIndex !== -1) {
-                // const action = line.substring(0, separatorIndex).replace(/[\*`]/g, "").replace(/^>-*\s*/g, "");
                 const action = line.substring(0, separatorIndex).replace(/^>-*\s*/g, "").toLowerCase();
-                // const actionText = line.substring(separatorIndex + 2).replace(/[\*`]/g, "");
                 const actionText = line.substring(separatorIndex + 2);
 
                 if (multiLineActions.includes(action)) {
-                    // Concatenate the rest of the lines as the actionText for multiLineActions
                     var multilineText = actionText + lines.slice(i + 1).join("\n");
-                    // multilineText = multilineText.replace(/[\*`]/g, "");
 
                     actions.push(new (actionClasses[action] || Action)(action, multilineText));
-                    break; // Assuming the rest of the input is the action text
-                }
-                else if (action in actionClasses) {
+                    break;
+                } else if (action in actionClasses) {
                     actions.push(new (actionClasses[action] || Action)(action, actionText));
-                    continue; // Skip to the next iteration of the loop
+                    continue;
                 }
             }
-            // If the line doesn't match an action format, treat it as a message
             messages.push(line);
         }
 
-        var questions = [];
+        var questions: string[] = [];
 
         for (let i = messages.length - 1; i >= 0; i--) {
             var message = messages[i];
-            if(hasQuestion(message)) {
+            if (hasQuestion(message)) {
                 const regex = /\s*-\s*|\s*\*\s*|\s*\d+\.\s*/g;
-                message = message.replace(regex, '');              
+                message = message.replace(regex, '');
                 questions.push(message);
-            } else if(message.trim() != "") {
+            } else if (message.trim() != "") {
                 break;
             }
         }
@@ -125,53 +129,50 @@ class AIMessage extends Message {
         this.chatMessage = messagesStr.trim();
     }
 
-    getMessageForAI(messageIndex) {
+    getMessageForAI(messageIndex: number) {
         if (this.fullMessage.indexOf("Goal:") == 0) {
-            if(this.includesQuestion) {
+            if (this.includesQuestion) {
                 return {
                     role: this.role,
                     content: `Goal:... (TRUNCATED & MOVED TO SYSTEM PROMPT)\n\n${this.questionText}`
                 }
-            }
-            else if (this.actions.length > 0) {
+            } else if (this.actions.length > 0) {
                 return {
                     role: this.role,
                     content: `Goal:... (TRUNCATED & MOVED TO SYSTEM PROMPT)\n\n${this.actions[0].action}: ${this.actions[0].actionText}`
                 }
-            }
-            else {
+            } else {
                 return {
                     role: this.role,
                     content: "Goal:... (TRUNCATED & MOVED TO SYSTEM PROMPT)"
                 }
             }
-        }
-        else if (messageIndex >= MAX_AI_MESSAGES) {
+        } else if (messageIndex >= MAX_AI_MESSAGES) {
             if (this.includesQuestion && this.questionText) {
                 return {
                     role: this.role,
                     content: `TRUNCATED TO QUESTION ONLY:\n...\n${this.questionText}`
                 };
-            }
-            else {
+            } else {
                 return null;
             }
-        }
-        else {
+        } else {
             return super.getMessageForAI();
         }
     }
 }
 
-class YAMLMessage extends Message {
-    constructor(role, yamlParams, date = null) {
+export class YAMLMessage extends Message {
+    yamlParams: { [key: string]: any };
+
+    constructor(role: string, yamlParams: { [key: string]: any }, date: Date | null = null) {
         super(role, stringify(yamlParams), date);
         this.yamlParams = yamlParams;
     }
 }
 
-class UserMessage extends YAMLMessage {
-    constructor(userfullMessage, date = null) {
+export class UserMessage extends YAMLMessage {
+    constructor(userfullMessage: string, date: Date | null = null) {
         const sentAtDate = date || new Date();
 
         const yamlParams = {
@@ -184,11 +185,11 @@ class UserMessage extends YAMLMessage {
         this.chatMessage = userfullMessage;
     }
 
-    getMessageForAI(messageIndex) {
+    getMessageForAI(messageIndex: number) {
         var text = this.fullMessage;
 
-        var toDelete = []
-        var parsedOut = [];
+        var toDelete: string[] = [];
+        var parsedOut: string[] = [];
 
         if (messageIndex > 1) {
             toDelete.push("Sent At");
@@ -217,8 +218,8 @@ class UserMessage extends YAMLMessage {
     }
 }
 
-class AppMessage extends YAMLMessage {
-    constructor(yamlParams, date = null) {
+export class AppMessage extends YAMLMessage {
+    constructor(yamlParams: { [key: string]: any }, date: Date | null = null) {
         const sentAtDate = date || new Date();
 
         yamlParams["Sent At"] = formatDate(sentAtDate);
@@ -228,15 +229,15 @@ class AppMessage extends YAMLMessage {
         this.chatMessage = "";
     }
 
-    getMessageForAI(messageIndex, nextAppMessage = null) {
+    getMessageForAI(messageIndex: number, nextAppMessage: AppMessage | null = null) {
         if (messageIndex >= MAX_AI_MESSAGES) {
             return null;
         }
 
         var text = this.fullMessage;
 
-        var toDelete = [];
-        var parsedOut = [];
+        var toDelete: string[] = [];
+        var parsedOut: string[] = [];
 
         if (messageIndex > 1) {
             if (nextAppMessage && nextAppMessage.yamlParams["Page URL"] == this.yamlParams["Page URL"]) {
@@ -279,16 +280,16 @@ class AppMessage extends YAMLMessage {
     }
 }
 
-class SystemMessage extends YAMLMessage {
-    constructor(yamlParams, date = null) {
+export class SystemMessage extends YAMLMessage {
+    constructor(yamlParams: { [key: string]: any }, date: Date | null = null) {
         super(SYSTEM_ROLE, yamlParams, date);
     }
 }
 
-class SystemPrompt extends SystemMessage {
-    constructor(userName=null, userLocation=null, date = null) {
+export class SystemPrompt extends SystemMessage {
+    constructor(userName: string | null = null, userLocation: string | null = null, date: Date | null = null) {
         const initialDate = date || new Date();
-        const yamlParams = {
+        const yamlParams: { [key: string]: any } = {
             "Your Role": [
                 "You are a personal AI assistant with access to the web through me, thus extending your capabilities to any company or service that has a website (do not ever suggest using an app to the user)",
                 "I enable you to do anything a human can using a mobile web browser but through function calls. Examples include (but are not limited) sending an email, monitoring a page, ordering taxis, playing media for the user, and interacting with social media",
@@ -296,8 +297,6 @@ class SystemPrompt extends SystemMessage {
                 "If the user asks for an email, you are able to send an email and include information from your previous messages. First navigate to the user's email service and then continue from there.",
                 "Whenever the plan changes based on a user's direct message, message with an updated plan including goal and numbered step-by-step plan for addressing the user request (see 'On Planning')",
                 "Authentication for services you are requested to interact with has already occurred and payment methods have already been entered",
-                // "Use find_in_page_text to include markdown links in your responses, especially with articles, social posts, etc.",
-                // "find_in_page_text is the best way to get information you need from the full current Page Text",
                 "You will be rewarded with appreciation and praise if you do not ask for permission to continue, confirmation, review of a plan, etc.",
                 "Don't ever repeat previous assistant messages",
                 "Use the sleep function with a time of forever if there's no further planned steps",
@@ -305,7 +304,6 @@ class SystemPrompt extends SystemMessage {
             "On Planning": [
                 "Goal MUST be on the first line of a planning message, for instance 'Goal: user's goal here'",
                 "Include all sites/services you will use to complete each step (for instance 'Send it as an email using Gmail')",
-                // "Note when you plan to use find_in_page_text (for instance 'Find all restaurant links using find_in_page_text')",
                 "Always note how you are able to use sleep to perform monitoring, scheduled messages, reminders, etc without other services",
                 "Note when you will return to a previous step",
                 "Finish with open questions for the user when it's a new plan",
@@ -313,14 +311,13 @@ class SystemPrompt extends SystemMessage {
             ],
             "Page Text": [
                 "find_in_page_text results will only be available until your next message",
-                "To prevent the loss of information, make sure to chat any important information from find_in_page_text (All Find Results) before calling another function", // go_forward, page_up, page_down
+                "To prevent the loss of information, make sure to chat any important information from find_in_page_text (All Find Results) before calling another function",
                 "Page Text does not include URLs and should only be used for navigation and interaction",
                 "find_in_page_text has access to the full Page Text (including URLs) and returns ALL instances of whatever you're looking for from the full Page Text",
                 "Examples of what find_in_page_text can find in the current Page Text include 'articles', 'article text', 'blog posts' 'navigation elements', 'form elements', 'filter', 'interactive elements', 'links about candycanes', 'thai restaurants', 'information on diabetes', 'search button, complete button, or similar'",
             ],
             "On Asking Questions": [
                 "Requests for information/feedback should always be asked as one or more questions with question marks",
-                // "DO NOT ask for confirmation or permission to continue your task, navigate, interact, etc."
             ],
             "On Inputting Text": [
                 "type_in only types into a SINGLE text box that is currently focused with ► (except for rare exceptions lik Wordle)",
@@ -338,35 +335,28 @@ class SystemPrompt extends SystemMessage {
             ],
             "Function Calls": [
                 "goto_url: full valid URL",
-                // get_navigation_text might be necessary here?
                 "find_in_page_text: description of what you're looking for in full Page Text",
-                // "page_up: reason to get previous page of truncated Page Text",
-                // "page_down: reason to get next page of truncated Page Text",
                 "reload: reason for reload current page",
                 "go_back: reason to go back in browsing history",
-                // "go_forward: reason to go forward in browsing history",
                 "click_on: full element description (text INSIDE curly brackets) from element to click, for instance button: Done or textbox: Search",
                 "type_in: only EXACT text to type into the current input/textbox, even \" will be outputted - do not include input/textbox name here",
                 "request_user_intervention: reason for giving the user control of the browser - upon user request, CAPTCHA or authentication",
                 "sleep: number of seconds until next action should occur",
                 "sleep_until: date and time",
-                // "all_done_including_reccurrence: reason for thinking ALL requested tasks are complete. If the task repeats in the future, do not call this.",
             ],
             "How To Make Function Calls": [
                 "Each of your messages can contain at most ONE function call, any additional function calls will be ignored",
                 "A function call should be on its own line, and the line should start with the function name. It should have the following format:\n\nfunction_name: input text"
             ],
-            // "User Name": userName,
-            // "General User Location": `${userLocation} - ask the user for a more precise location when utilizing location`,
             "Start Date and Time": formatDate(initialDate),
             "Goal & Plan for Interacting with Mobile Browser": "no goal/plan yet"
         }
 
-        if(userName) {
+        if (userName) {
             yamlParams["User Name"] = userName;
         }
 
-        if(userLocation) {
+        if (userLocation) {
             yamlParams["General User Location"] = `${userLocation} - ask the user for a more precise location when utilizing location`;
         }
 
@@ -375,10 +365,8 @@ class SystemPrompt extends SystemMessage {
         this.chatMessage = "";
     }
 
-    updateGoalAndPlan(str) {
+    updateGoalAndPlan(str: string) {
         this.yamlParams["Goal & Plan for Interacting with Mobile Browser"] = str;
         this.fullMessage = stringify(this.yamlParams);
     }
 }
-
-module.exports = { UserMessage, AIMessage, AppMessage, SystemPrompt, SystemMessage, SYSTEM_ROLE, USER_ROLE, ASSISTANT_ROLE };

@@ -1,9 +1,11 @@
-const { randomDelay } = require('./utilities.js');
-const Fuse = require('fuse.js');
+import { randomDelay } from './utilities';
+import Fuse from 'fuse.js';
+import { KeyInput } from 'puppeteer';
+import { Frame, Page, ElementHandle, CDPSession } from 'puppeteer-core';
 
 const interactive = ["link", "button", "combobox", "searchbox", "textbox", "select", "menuitem", "menuitemcheckbox", "menuitemradio", "radio", "checkbox", "option", "slider", "spinbutton", "switch", "tab", "treeitem"];
 
-async function clickElement(page, cursor, element) {
+async function clickElement(page: Page, cursor: any, element: ElementHandle) {
     const intersecting = await element.isIntersectingViewport();
 
     if (!intersecting) {
@@ -15,51 +17,44 @@ async function clickElement(page, cursor, element) {
     await randomDelay(500, 1500);
 
     const boundingBox = await element.boundingBox();
-    // Calculate the minimum and maximum values for the insideX range
-    const minX = boundingBox.x + boundingBox.width / 4;
-    const maxX = boundingBox.x + 3 * boundingBox.width / 4;
-    // Generate a random value within the range [minX, maxX] for insideX
-    const insideX = minX + Math.random() * (maxX - minX);
 
-    // Calculate the minimum and maximum values for the insideY range
-    const minY = boundingBox.y + boundingBox.height / 4;
-    const maxY = boundingBox.y + 3 * boundingBox.height / 4;
-    // Generate a random value within the range [minY, maxY] for insideY
-    const insideY = minY + Math.random() * (maxY - minY);
+    if (boundingBox) {
+        const minX = boundingBox.x + boundingBox.width / 4;
+        const maxX = boundingBox.x + 3 * boundingBox.width / 4;
+        const insideX = minX + Math.random() * (maxX - minX);
 
-    // console.log(`Clicking ${element} at (${insideX},${insideY})`);
+        const minY = boundingBox.y + boundingBox.height / 4;
+        const maxY = boundingBox.y + 3 * boundingBox.height / 4;
+        const insideY = minY + Math.random() * (maxY - minY);
 
-    await cursor.moveTo({ x: insideX, y: insideY });
-    // await page.mouse.move(insideX, insideY);
+        await cursor.moveTo({ x: insideX, y: insideY });
 
-    await randomDelay(30, 200);
+        await randomDelay(30, 200);
+    }
 
-    // await cursor.click(element)
-    // await page.mouse.click(insideX, insideY);
     await element.tap();
 }
 
-async function keyboardType(page, text) {
-    console.log(`Typing: ${text}`)
+async function keyboardType(page: Page, text: string) {
+    console.log(`Typing: ${text}`);
     for (let char of text) {
-        // Generating a random delay between 30 and 100 milliseconds
         await randomDelay(20, 40);
         await page.keyboard.type(char);
     }
 }
 
-async function keyboardPress(page, key, frame = null) {
-    console.log(`Hitting: ${key}`)
+async function keyboardPress(page: Page, key: string, frame: Frame | null = null) {
+    console.log(`Hitting: ${key}`);
 
     if (frame) {
         await frame.focus('body');
     }
 
     await randomDelay(1000, 3000);
-    await page.keyboard.press(key);
+    await page.keyboard.press(key as KeyInput);
 }
 
-async function selectAll(page, frame = null) {
+async function selectAll(page: Page, frame: Frame | null = null) {
     console.log(`Selecting all`);
 
     if (frame) {
@@ -77,47 +72,44 @@ async function selectAll(page, frame = null) {
 }
 
 async function queryAXTree(
-    client, //: CDPSession,
-    accessibleName //, //?: string,
-    // role //?: string
+    client: CDPSession,
+    accessibleName: string
 ) {
-    // XXX: Add back in role here
     const { root } = await client.send('DOM.getDocument', { depth: 0 });
     const { nodes } = await client.send('Accessibility.queryAXTree', {
         backendNodeId: root.backendNodeId,
-        accessibleName: accessibleName //,
-        // role: role
+        accessibleName: accessibleName
     });
-    const filteredNodes = nodes.filter( //: Protocol.Accessibility.AXNode[] = nodes.filter(
-        (node) => { //: Protocol.Accessibility.AXNode) => {
+    const filteredNodes = nodes.filter(
+        (node) => {
             return !node.role || node.role.value !== 'StaticText';
         }
     );
     return filteredNodes;
 }
 
-async function getAriaElement(client, page, cursor, label) {
-    const axNodes = await queryAXTree(client, label);
+// async function getAriaElement(client: CDPSession, page: Page, cursor: any, label: string): Promise<ElementHandle | null> {
+//     const axNodes = await queryAXTree(client, label);
 
-    // console.log(axNodes);
+//     if (axNodes.length > 0) {
+//         const backendNodeId = axNodes[0].backendDOMNodeId;
 
-    if (axNodes.length > 0) {
-        const backendNodeId = axNodes[0].backendDOMNodeId;
-        // console.log(backendNodeId);
+//         const htmlElement = await page.$("html");
+//         if (htmlElement) {
+//             return await htmlElement.realm.adoptBackendNode(backendNodeId);
+//         }
+//         else {
+//             return null;
+//         }
+//     } else {
+//         throw new Error(`Unable to find ARIA with label: ${label}`);
+//     }
+// }
 
-        const htmlElement = await page.$("html");
-        return await htmlElement.realm.adoptBackendNode(backendNodeId);
-    }
-    else {
-        throw new Error(`Unable to find ARIA with label: ${label}`)
-    }
-}
-
-async function clickClosestAriaName(client, page, cursor, label) {
+async function clickClosestAriaName(client: CDPSession, page: Page, cursor: any, label: string) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
     var nameToElementsMap = await mapNameToElements(nodeTree);
-    // console.log(nameToElementsMap);
 
     var elementIndex = 0;
     const regex = /#(\d+)#/;
@@ -130,7 +122,7 @@ async function clickClosestAriaName(client, page, cursor, label) {
 
     const matchingKeys = Object.keys(nameToElementsMap).filter(key => key.includes(label));
 
-    if (matchingKeys.length == 1 && ( match || nameToElementsMap[matchingKeys[0]].length == 1) ) {
+    if (matchingKeys.length == 1 && (match || nameToElementsMap[matchingKeys[0]].length == 1)) {
         console.log('One exact match:', matchingKeys[0]);
 
         const element = nameToElementsMap[matchingKeys[0]][elementIndex];
@@ -141,41 +133,37 @@ async function clickClosestAriaName(client, page, cursor, label) {
     const items = Object.entries(nameToElementsMap).map(([key, value]) => ({ key, value }));
 
     const fuse = new Fuse(items, {
-        keys: ['key'], // specify the property to search against
-        includeScore: true // include the search score in the result
+        keys: ['key'],
+        includeScore: true
     });
 
-    // Search for the closest key
     const result = fuse.search(label);
 
     if (result.length > 0) {
         console.log('Closest match:', result[0].item.key, 'with score:', result[0].score);
 
-        if (result[0].score < 0.5) {
+        if (result[0].score && result[0].score < 0.5) {
             const element = nameToElementsMap[result[0].item.key][elementIndex];
-            await clickElement(page, cursor, element);    
-        }
-        else {
+            await clickElement(page, cursor, element);
+        } else {
             throw new Error(`No match found for ${label}. Closest match was ${result[0].item.key}.`);
         }
     } else {
         throw new Error(`No match found for ${label}.`);
     }
-    // XXX: NEED TO FINISH
 }
 
-async function clickExactAriaName(client, page, cursor, label) {
-    const ariaElement = await getAriaElement(client, page, cursor, label);
+// async function clickExactAriaName(client: CDPSession, page: Page, cursor: any, label: string) {
+//     const ariaElement = await getAriaElement(client, page, cursor, label);
 
-    if (ariaElement) {
-        await clickElement(page, cursor, ariaElement);
-    }
-    else {
-        console.log(`Couldn't find element with label "${label}"`);
-    }
-}
+//     if (ariaElement) {
+//         await clickElement(page, cursor, ariaElement);
+//     } else {
+//         console.log(`Couldn't find element with label "${label}"`);
+//     }
+// }
 
-async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode = null, rootNodeId = null, frameTopElement = null, nodeId = null) {
+async function buildTree(client: CDPSession, frameIdToFrame: { [key: string]: Frame }, frameTree: any = null, nodeIdToNode: { [key: string]: any } | null = null, rootNodeId: string | null = null, frameTopElement: ElementHandle | null = null, nodeId: string | null = null) {
     if (frameTree === null) {
         frameTree = await client.send(
             'Accessibility.getFullAXTree',
@@ -183,18 +171,18 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
     }
 
     if (nodeIdToNode === null) {
-        nodeIdToNode = frameTree.nodes.reduce((acc, item) => {
+        nodeIdToNode = frameTree.nodes.reduce((acc: { [key: string]: any }, item: any) => {
             acc[item.nodeId] = item;
             return acc;
         }, {});
     }
 
     if (rootNodeId === null) {
-        const rootNode = frameTree.nodes.filter(node => !node.parentId)[0];
+        const rootNode = frameTree.nodes.filter((node: any) => !node.parentId)[0];
         rootNodeId = rootNode.nodeId;
     }
 
-    if (frameTopElement === null) {
+    if (frameTopElement === null && nodeIdToNode && rootNodeId && nodeIdToNode[rootNodeId]) {
         const frame = frameIdToFrame[nodeIdToNode[rootNodeId].frameId];
         frameTopElement = await frame.$("html");
     }
@@ -203,11 +191,16 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
         nodeId = rootNodeId;
     }
 
+    if (nodeIdToNode === null || !nodeId || !rootNodeId) {
+        return;
+    }
+
     const nodeClone = { ...nodeIdToNode[nodeId] };
     nodeClone.frameId = nodeIdToNode[rootNodeId].frameId;
     nodeClone.children = [];
 
-    if (nodeClone.backendDOMNodeId) {
+    if (frameTopElement && nodeClone.backendDOMNodeId) {
+        //@ts-ignore
         nodeClone.element = await frameTopElement.realm.adoptBackendNode(nodeClone.backendDOMNodeId);
     }
 
@@ -228,8 +221,7 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
             });
 
             nodeClone.children.push(await buildTree(client, frameIdToFrame, iFrameNodeFrameTree));
-        }
-        else {
+        } else {
             nodeClone.children.push(await buildTree(client, frameIdToFrame, frameTree, nodeIdToNode, rootNodeId, frameTopElement, childId));
         }
     }
@@ -246,7 +238,6 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
         }
 
         nodeClone.name.value = fnt;
-        // console.log(nodeClone.name.value);
 
         nodeClone.children = [];
     }
@@ -254,14 +245,15 @@ async function buildTree(client, frameIdToFrame, frameTree = null, nodeIdToNode 
     return nodeClone;
 }
 
-async function getAllFrames(page) {
-    var frames = [];
+async function getAllFrames(page: Page) {
+    var frames: Frame[] = [];
 
     for (let frame of page.frames()) {
         await getChildFrames(frames, frame);
     }
 
-    frameIdToFrame = frames.reduce((acc, item) => {
+    const frameIdToFrame = frames.reduce((acc: { [key: string]: Frame }, item: Frame) => {
+        //@ts-ignore
         acc[item._id] = item;
         return acc;
     }, {});
@@ -269,7 +261,7 @@ async function getAllFrames(page) {
     return frameIdToFrame;
 }
 
-async function getChildFrames(frames, frame) {
+async function getChildFrames(frames: Frame[], frame: Frame) {
     if (!frames.includes(frame)) {
         frames.push(frame);
     }
@@ -279,15 +271,13 @@ async function getChildFrames(frames, frame) {
     }
 }
 
-async function mapNameToElements(node) {
-    let map = {};
+async function mapNameToElements(node: any): Promise<{ [key: string]: ElementHandle[] }> {
+    let map: { [key: string]: ElementHandle[] } = {};
 
-    function traverse(node) {
+    function traverse(node: any) {
         if (!node) return;
-        // if (node.ignored) return;
-        // console.log(node);
 
-        if (interactive.includes(node.role.value) && node.element != null && node.element != {}) {
+        if (interactive.includes(node.role.value) && node.element != null ) {
             var key = `${node.role.value}: ${node.name?.value.trim()}`;
 
             if (!map[key]) {
@@ -296,28 +286,26 @@ async function mapNameToElements(node) {
             map[key].push(node.element);
         }
 
-        // If the node has children, traverse them recursively
         if (node.children && node.children.length > 0) {
-            node.children.forEach(child => {
+            node.children.forEach((child: any) => {
                 traverse(child);
             });
         }
     }
 
-    traverse(node); // Start the traversal from the root node
+    traverse(node);
 
     return map;
 }
 
-async function getAriaElementsText(client, page, includeURLs) {
+async function getAriaElementsText(client: CDPSession, page: Page, includeURLs: boolean) {
     var frameIdToFrame = await getAllFrames(page);
     var nodeTree = await buildTree(client, frameIdToFrame);
     var treeText = await getTreeText(nodeTree, 0, includeURLs);
 
-    let counts = {};
+    let counts: { [key: string]: { count: number; indices: number[] } } = {};
 
-    const addNumberToRepeatingStrings = (array) => {
-        // First pass to count occurrences and store indices
+    const addNumberToRepeatingStrings = (array: string[]) => {
         array.forEach((item, index) => {
             let matches = item.match(/{([^:]+):\s*(.*)}(.*)/);
             if (matches) {
@@ -330,50 +318,36 @@ async function getAriaElementsText(client, page, includeURLs) {
                 }
             }
         });
-    
-        // Second pass to number items based on counts and indices
+
         return array.map((item, index) => {
             let matches = item.match(/{([^:]+):\s*(.*)}(.*)/);
             if (matches) {
                 let identifier = `${matches[1]}: ${matches[2]}`;
                 if (counts[identifier].count > 1) {
-                    // Find the index of this occurrence
-                    let occurrenceIndex = counts[identifier].indices.indexOf(index) + 1; // +1 to make it human-readable (1-based indexing)
+                    let occurrenceIndex = counts[identifier].indices.indexOf(index) + 1;
                     if (matches[2] == "") {
                         return `{${matches[1]}: #${occurrenceIndex}#}${matches[3]}`;
-                    }
-                    else {
+                    } else {
                         return `{${matches[1]}: ${matches[2]} #${occurrenceIndex}#}${matches[3]}`;
                     }
                 }
             }
-            return item; // Return the original item if it's not repeated
+            return item;
         });
     };
-    
+
     const treeTextWithNumbers = addNumberToRepeatingStrings(treeText);
     const treeTextWithNumbersStr = treeTextWithNumbers.join("\n");
 
     return treeTextWithNumbersStr.replace(/\n+/g, '\n');
 }
 
-function getFullNodeText(node) {
-    var nodeTextArray = [];
+function getFullNodeText(node: any): string[] {
+    var nodeTextArray: string[] = [];
 
-    // if (node.role && node.role.value == "image") {
-    //     if (node.name && node.name.value) {
-    //         nodeTextArray.push(`![${node.name.value}]()`.trim());
-    //     }
-    //     else {
-    //         nodeTextArray.push("![]()");
-    //     }
-    // }
-    // else 
     if (node.name && node.name.value && !node.ignored) {
         nodeTextArray.push(node.name.value);
-        // console.log(`XXX: ${node.name.value}`);
-    }
-    else {
+    } else {
         nodeTextArray.push("");
     }
 
@@ -386,8 +360,8 @@ function getFullNodeText(node) {
     return uniqueArray;
 }
 
-async function getTreeText(node, level, includeURLs) {
-    var fullTextArray = [];
+async function getTreeText(node: any, level: number, includeURLs: boolean): Promise<string[]> {
+    var fullTextArray: string[] = [];
 
     const editable = ["searchbox", "combobox", "textbox"];
     const checkable = ["checkbox", "menuitemcheckbox", "radio", "switch"];
@@ -396,7 +370,7 @@ async function getTreeText(node, level, includeURLs) {
 
     if (!node.ignored && node.role && node.role.value) {
         if (hasURL.includes(node.role.value)) {
-            let href = await node.element.evaluate(el => el.getAttribute('href'));
+            let href = await node.element.evaluate((el: Element) => el.getAttribute('href'));
 
             if (href && includeURLs) {
                 href = href.replace("https://www.", "");
@@ -409,13 +383,11 @@ async function getTreeText(node, level, includeURLs) {
                 }
 
                 fullTextArray.push(`{${node.role.value}: ${node.name.value}}(${href})`);
-            }
-            else {
+            } else {
                 fullTextArray.push(`{${node.role.value}: ${node.name.value}}`);
             }
-        }
-        else if (interactive.includes(node.role.value)) { // && node.element !== null) {
-            if (node.element === null || (node.element !== null && node.element.isVisible())) {
+        } else if (interactive.includes(node.role.value)) {
+            if (node.element === null || (node.element !== null && await node.element.isVisible())) {
                 var focusStr = "";
                 var editableValueStr = "";
 
@@ -426,20 +398,16 @@ async function getTreeText(node, level, includeURLs) {
                                 focusStr = "► ";
                             }
                         }
-                    }
-                    else if (checkable.includes(node.role.value)) {
+                    } else if (checkable.includes(node.role.value)) {
                         for (let property of node.properties) {
                             if (property.name == "checked" && property.value.value) {
-                                // console.log(property.value);
                                 focusStr = "☑ ";
                                 break;
                             }
                         }
-                    }
-                    else if (selectable.includes(node.role.value)) {
+                    } else if (selectable.includes(node.role.value)) {
                         for (let property of node.properties) {
                             if (property.name == "selected" && property.value.value) {
-                                // console.log(property.value);
                                 focusStr = "☑ ";
                                 break;
                             }
@@ -448,30 +416,24 @@ async function getTreeText(node, level, includeURLs) {
                 }
 
                 if (editable.includes(node.role.value)) {
-                    // editableValueStr = `\n${" ".repeat(level+1)}StaticText: ${node.value.value}`
                     if (node.value && node.value.value) {
                         editableValueStr = `[${node.value.value}]`;
-                    }
-                    else {
+                    } else {
                         editableValueStr = `[]`;
                     }
                 }
-
                 fullTextArray.push(`{${focusStr}${node.role.value}: ${node.name.value}}${editableValueStr}\n`);
-            }
-            else {
+            } else {
                 for (let childNode of node.children) {
                     fullTextArray = fullTextArray.concat(await getTreeText(childNode, level, includeURLs));
                 }
             }
-        }
-        else {
+        } else {
             var text = "";
 
             if (node.role.value == "RootWebArea") {
                 text = `# START ${node.name.value}`;
-            }
-            else if (node.role.value == "heading") {
+            } else if (node.role.value == "heading") {
                 var heading_level = 1;
 
                 for (let property of node.properties) {
@@ -481,14 +443,11 @@ async function getTreeText(node, level, includeURLs) {
                 }
 
                 text = "#".repeat(heading_level) + " " + node.name.value;
-            }
-            else if (node.name && node.name.value) {
-                // text = `${node.role.value}: ${node.name.value}`;
+            } else if (node.name && node.name.value) {
                 text = `${node.name.value}`;
             }
 
             if (text.trim() != "") {
-                // fullText += `${" ".repeat(level+1)}${text}\n`;
                 fullTextArray.push(`${text}\n`);
             }
 
@@ -500,8 +459,7 @@ async function getTreeText(node, level, includeURLs) {
                 fullTextArray.push(`# END ${node.name.value}\n`);
             }
         }
-    }
-    else {
+    } else {
         for (let childNode of node.children) {
             fullTextArray = fullTextArray.concat(await getTreeText(childNode, level, includeURLs));
         }
@@ -510,4 +468,4 @@ async function getTreeText(node, level, includeURLs) {
     return fullTextArray;
 }
 
-module.exports = { clickElement, clickExactAriaName, getAriaElement, keyboardPress, keyboardType, selectAll, getAriaElementsText, clickClosestAriaName };
+export { clickElement, keyboardPress, keyboardType, selectAll, getAriaElementsText, clickClosestAriaName }; // clickExactAriaName, getAriaElement,

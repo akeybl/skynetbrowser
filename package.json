@@ -3,9 +3,10 @@
   "productName": "Sky Netbrowser",
   "version": "0.0.1",
   "description": "Effective chat agent with access to a web browser.",
-  "main": "src/main.js",
+  "main": "build/main.js",
   "scripts": {
-    "start": "electron-forge start",
+    "compile": "tsc && cp -f src/index.html src/index.css build",
+    "start": "npm run compile && electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
@@ -47,6 +48,7 @@
     "puppeteer-extra-plugin-session": "^1.0.1",
     "puppeteer-in-electron": "^3.0.5",
     "tiktoken": "^1.0.13",
+    "typescript": "^5.4.5",
     "yaml": "^2.4.1"
   }
 }
