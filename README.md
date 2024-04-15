@@ -1,3 +1,16 @@
+# Current Features
+* Page navigation, element interaction, and page text/link parsing
+* Observability of AI actions, both in the message thread and by watching the browser
+* Tracks cost of the last AI message, and the total for the current message thread
+* Requests user intervention when it needs authentication/CAPTCHA, but the user can also ask for control
+* Notifications when the window is minimized/closed
+* Interruption of AI actions are allowed, but interrupted requests are not added to total cost
+
+# Privacy & Security
+* In its current form, the background browser window is available on `localhost:3000` and does not yet limit connections to localhost
+* Anything found on the page (including text found on authenticated pages) is sent to AI for analysis and action
+* Whatever you do/enter when performing a browser intervention is **NOT** sent to AI
+
 # How to Run
 1) `cp .env.tempate .env`
 2) Edit .env to specify an OpenAI key and/or Open Router key
