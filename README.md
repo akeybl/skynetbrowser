@@ -1,6 +1,6 @@
 **Sky Netbrowser** is a cross-platform desktop app that gives high-functioning LLMs (GPT 4, Claude 3 Opus) access to a mobile browser and any services you authenticate within it. It can accomplish helpful tasks on your behalf, even when you're not around (see Example Use Cases below). It may also be able to take over the world if given enough access.
 
-I have decided to open source Sky Netbrowser as I believe it is important for the community to trust anything we allow to perform tasks on our behalf. Please consider joining our [**Discord**](link_needed) to provide feedback or contribute. Or tweet/DM me [@alexkeybl](https://www.x.com/alexkeybl/)
+I have decided to open source Sky Netbrowser as I believe it is important for the community to trust anything we allow to perform tasks on our behalf. Please consider joining our [**Discord**](link_needed) to provide feedback or contribute. Or tweet/DM me [@alexkeybl](https://www.x.com/alexkeybl/).
 
 ## Example Use Cases
 * Order me an Uber to the White House when the price goes below $10
