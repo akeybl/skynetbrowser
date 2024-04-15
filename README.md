@@ -31,6 +31,7 @@ I have decided to open source Sky Netbrowser as I believe it is important for th
 * Whatever you do/enter when performing a browser intervention is **NOT** sent to AI
 
 ## Future Work
+* **Multiple Threads and Session Restore**
 * **Cost safeguards**
 * **iPhone & Android mobile app support**, with a streaming web view for user observation and intervention
 * **Cloud-hosted browser** solution (always-on without a desktop at home)
