@@ -3,8 +3,14 @@
 * Observability of AI actions, both in the message thread and by watching the browser
 * Tracks cost of the last AI message, and the total for the current message thread
 * Requests user intervention when it needs authentication/CAPTCHA, but the user can also ask for control
-* Notifications when the window is minimized/closed
+* AI message notifications when the window is minimized/closed
 * Interruption of AI actions are allowed, but interrupted requests are not added to total cost
+
+# Example Use Cases
+* Order me an Uber to the White House when the price goes below $10
+* Every day at this time, find all the AI-related links on hacker news. Then use gmail to send them to user@mailservice.com
+* At 9am before each upcoming Nationals baseball game, send me a reminder here
+* Every morning check the weather and shortly tell me what I should wear as a man to stay comfortable all day long
 
 # Privacy & Security
 * In its current form, the background browser window is available on `localhost:3000` and does not yet limit connections to localhost
@@ -25,3 +31,7 @@ If you'd like to use an Open Router model, just change `SMART_MODEL` to the full
 # How to Build for Mac
 1) Edit .env according to [these instructions](https://www.rocketride.io/blog/macos-code-sign-notarize-electron-app)
 2) `npm run make`
+
+# System Prompts
+* [Main system prompt](src/chain-messages.ts#L289) - planning, navigation, interaction, function calls
+* [Find in page system prompt](src/actions.ts#L253) - sub-agent when trying to find lines in the page relevant to next steps of the main system prompt
