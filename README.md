@@ -2,6 +2,8 @@
 
 I have decided to open source Sky Netbrowser as I believe it is important for the community to trust anything we allow to perform tasks on our behalf. Please consider joining our [**Discord**](link_needed) to provide feedback or contribute. Or tweet/DM me [@alexkeybl](https://www.x.com/alexkeybl/).
 
+<br><p align="center"><img src="https://raw.githubusercontent.com/akeybl/skynetbrowser.com/main/demo_trimmed_optimized.gif" width="550"></p><br>
+
 ## Example Use Cases
 * Order me an Uber to the White House when the price goes below $10
 * Every day at this time, find all the AI-related links on Hacker News. Then use gmail to send them to user@mailservice.com
@@ -30,13 +32,13 @@ I have decided to open source Sky Netbrowser as I believe it is important for th
 * Anything found on the page (including text found on authenticated pages) is sent to AI for analysis and action
 * Whatever you do/enter when performing a browser intervention is **NOT** sent to AI
 
-## Future Work
-* **Multiple Threads and Session Restore**
-* **Cost safeguards**
-* **iPhone & Android mobile app support**, with a streaming web view for user observation and intervention
-* **Cloud-hosted browser** solution (always-on without a desktop at home)
-* **CC billing for AI usage** without the need for an OpenAI / OpenRouter key
-* **Local LLMs for increased privacy** -- currently blocked only on open source LLM ability
+## Planned Work
+* Multiple Threads and Session Restore
+* Cost safeguards
+* iPhone & Android mobile app support, with a streaming web view for user observation and intervention
+* Cloud-hosted browser solution (always-on without a desktop at home)
+* CC billing for AI usage without the need for an OpenAI / OpenRouter key
+* Local LLMs for increased privacy -- currently blocked only on open source LLM ability
 
 ## How to Change Models
 If you'd like to use an OpenAI model, just change `SMART_MODEL` in `src/globals.js` to the model name
