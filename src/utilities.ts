@@ -162,5 +162,6 @@ export function millisecondsUntil(date: Date): number {
 }
 
 export function convertStringToDate(dateTimeString: string): Date {
-    return parser.attempt(dateTimeString);
+    //@ts-ignore
+    return parser.fromString(dateTimeString);
 }
