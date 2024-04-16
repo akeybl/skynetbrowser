@@ -72,7 +72,7 @@ export class Action {
         }
 
         if (this.action == FIND_IN_PAGE) {
-            this.returnParams[`Notice`] = `Message anything from Find Results that you will need to use in the future or it will no longer be available to you.`;
+            this.returnParams[`Notice`] = `You MUST message anything from Find Results that you will need to use in the future (for instance page text or links) since it will ONLY be available to you after this message if you do.`;
         } else {
             this.returnParams[`Notice`] = `Page Text is meant for fast navigation/clicks/interaction and should not be used to message markdown links to the user. You MUST use find_in_page_text for that purpose, as it has access to all ${fullTextPages} pages and link URLs.`;
         }
