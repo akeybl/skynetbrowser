@@ -169,6 +169,7 @@ async function main() {
     });
 
     var goAgain = false;
+    var previousHadNoQuestionOrFunction = false;
 
     while (true) {
         mainWindow.webContents.send('set-spinner', false);
@@ -241,6 +242,23 @@ async function main() {
 
             aiResponse.chatMessage = aiResponse.questionText ? aiResponse.questionText : "";
             (messageChain[0] as SystemPrompt).updateGoalAndPlan(goalLines.join('\n'));
+
+            previousHadNoQuestionOrFunction = false;
+        }
+        else if (!aiResponse.includesQuestion && aiResponse.actions.length == 0) {
+            if (previousHadNoQuestionOrFunction) {
+                console.log("Got a second message without question/function, sleeping forever.");
+
+                aiResponse.fullMessage = "sleep: forever";
+                aiResponse.parseActionsAndMessage();
+                previousHadNoQuestionOrFunction = false;
+            }
+            else {
+                previousHadNoQuestionOrFunction = true;
+            }
+        }
+        else {
+            previousHadNoQuestionOrFunction = false;
         }
 
         sendMessageToRenderer(mainWindow, aiResponse);
