@@ -22,7 +22,7 @@ puppeteer.use(sessionPlugin());
 import {createCursor, installMouseHelper} from "ghost-cursor";
 import { DEV_MODE } from "./globals";
 import { storeSessionStr, getSessionStr } from "./data-store";
-import { getAriaElementsText, clickClosestAriaName, keyboardType, keyboardPress } from './page-utilities';
+import { getAriaElementsText, clickClosestAriaName, keyboardType, keyboardPress, getPageLinks } from './page-utilities';
 import { delay } from './utilities';
 import { Frame, Browser, Page, ElementHandle, CDPSession, KnownDevices } from 'puppeteer-core';
 
@@ -191,6 +191,14 @@ export class BrowserPage {
         }
 
         return await getAriaElementsText(this.client, this.page, includeURLs);
+    }
+
+    async getPageLinks() {
+        if (!this.client || !this.page) {
+            return [];
+        }
+
+        return await getPageLinks(this.client, this.page);
     }
 
     async clickClosestText(text: string) {

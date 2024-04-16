@@ -2,6 +2,7 @@ export const DEV_MODE = true;
 
 export const PAGE_TOKEN_LENGTH = 400;
 export const MAX_AI_MESSAGES = 12;
+export const URL_TRUNCATION_LENGTH = 40;
 
 export const SMART_MODEL = "gpt-4-turbo";
 export const SMART_MAX_WRITE_TOKENS = 2000;

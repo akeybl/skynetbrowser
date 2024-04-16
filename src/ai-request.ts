@@ -72,14 +72,14 @@ export class AIRequest {
         return minifiedChain;
     }
 
-    async getResult() {
+    async getResult(pageLinks: Array<string>) {
         const mc = this.getMinifiedChain();
         console.log(mc);
 
         const result = await getResult(this.controller.signal, mc, true);
 
         if (result) {
-            return new AIMessage(result);
+            return new AIMessage(result, pageLinks);
         } else {
             return null;
         }

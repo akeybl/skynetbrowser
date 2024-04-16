@@ -1,7 +1,7 @@
 import { stringify } from 'yaml';
 import { formatDate, hasQuestion } from "./utilities";
 import { Action, actionClasses, TYPE_IN } from "./actions";
-import { MAX_AI_MESSAGES, SMART_PROMPT_COST, SMART_COMPLETION_COST } from './globals';
+import { MAX_AI_MESSAGES, SMART_PROMPT_COST, SMART_COMPLETION_COST, URL_TRUNCATION_LENGTH } from './globals';
 
 export const SYSTEM_ROLE = 'system';
 export const USER_ROLE = 'user';
@@ -41,7 +41,7 @@ export class AIMessage extends Message {
     questionText: string | null;
     hasMarkdown: boolean;
 
-    constructor(aiResponse: any, date: Date | null = null) {
+    constructor(aiResponse: any, pageLinks: Array<string>, date: Date | null = null) {
         super(ASSISTANT_ROLE, aiResponse.choices[0].message.content, date);
 
         this.aiResponse = aiResponse;
@@ -53,6 +53,7 @@ export class AIMessage extends Message {
 
         this.cost = 0;
 
+        this.fixURLs(pageLinks);
         this.parseActionsAndMessage();
     }
 
@@ -68,6 +69,37 @@ export class AIMessage extends Message {
         });
 
         return finalCost;
+    }
+
+    fixURLs(pageLinks: Array<string>) {
+        const pageLinksSorted = pageLinks.sort((a, b) => b.length - a.length);
+        var alreadyMatched: string[] = [];
+
+        pageLinksSorted.forEach(link => {
+            var truncatedLink = link.replace("https://www.", "").replace("http://www.", "").replace("https://", "").replace("http://", "");
+
+            if (truncatedLink.length > URL_TRUNCATION_LENGTH) {
+                truncatedLink = truncatedLink.substring(0, URL_TRUNCATION_LENGTH);
+
+                if(truncatedLink[truncatedLink.length-1] != "/") {
+                    truncatedLink += "/";
+                }
+
+                const escapedTruncatedLink = truncatedLink.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+                const pattern = `(https?:\\/\\/(www\\.)?)?${escapedTruncatedLink}`;
+                const regex = new RegExp(pattern, 'g');
+
+                const match = this.fullMessage.match(regex);
+
+                if(match) {
+                    if(!alreadyMatched.includes(match[0])) {
+                        alreadyMatched.push(match[0]);
+                        this.fullMessage = this.fullMessage.replace(regex, link);
+                    }
+                }
+            }
+        });
     }
 
     parseActionsAndMessage() {

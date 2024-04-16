@@ -190,7 +190,9 @@ async function main() {
         newUserMessages = [];
 
         const request = new AIRequest(abortController, messageChain);
-        var aiResponse = await request.getResult();
+        
+        const pageLinks = await browserPage.getPageLinks();
+        var aiResponse = await request.getResult(pageLinks);
 
         if (!aiResponse) {
             continue;

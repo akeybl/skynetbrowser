@@ -2,8 +2,13 @@ import { randomDelay } from './utilities';
 import Fuse from 'fuse.js';
 import { KeyInput } from 'puppeteer';
 import { Frame, Page, ElementHandle, CDPSession } from 'puppeteer-core';
+import { URL_TRUNCATION_LENGTH } from './globals';
 
 const interactive = ["link", "button", "combobox", "searchbox", "textbox", "select", "menuitem", "menuitemcheckbox", "menuitemradio", "radio", "checkbox", "option", "slider", "spinbutton", "switch", "tab", "treeitem"];
+const editable = ["searchbox", "combobox", "textbox"];
+const checkable = ["checkbox", "menuitemcheckbox", "radio", "switch"];
+const selectable = ["switch", "tab", "treeitem"];
+const hasURL = ["link", "button"];
 
 async function clickElement(page: Page, cursor: any, element: ElementHandle) {
     const intersecting = await element.isIntersectingViewport();
@@ -71,21 +76,33 @@ async function selectAll(page: Page, frame: Frame | null = null) {
     await randomDelay(100, 200);
 }
 
-async function queryAXTree(
-    client: CDPSession,
-    accessibleName: string
-) {
-    const { root } = await client.send('DOM.getDocument', { depth: 0 });
-    const { nodes } = await client.send('Accessibility.queryAXTree', {
-        backendNodeId: root.backendNodeId,
-        accessibleName: accessibleName
-    });
-    const filteredNodes = nodes.filter(
-        (node) => {
-            return !node.role || node.role.value !== 'StaticText';
+async function getPageLinks(client: CDPSession, page: Page) {
+    var frameIdToFrame = await getAllFrames(page);
+    var nodeTree = await buildTree(client, frameIdToFrame);
+
+    let links: Array<string> = [];
+
+    async function traverse(node: any) {
+        if (!node) return;
+
+        if (hasURL.includes(node.role.value) && node.element != null ) {
+            let href = await node.element.evaluate((el: Element) => el.getAttribute('href'));
+
+            if(href) {
+                links.push(href);
+            }
         }
-    );
-    return filteredNodes;
+
+        if (node.children && node.children.length > 0) {
+            for (const child of node.children) {
+                await traverse(child);
+            }
+        }
+    }
+
+    await traverse(nodeTree);
+
+    return links;
 }
 
 async function clickClosestAriaName(client: CDPSession, page: Page, cursor: any, label: string) {
@@ -335,23 +352,18 @@ function getFullNodeText(node: any): string[] {
 async function getTreeText(node: any, level: number, includeURLs: boolean): Promise<string[]> {
     var fullTextArray: string[] = [];
 
-    const editable = ["searchbox", "combobox", "textbox"];
-    const checkable = ["checkbox", "menuitemcheckbox", "radio", "switch"];
-    const selectable = ["switch", "tab", "treeitem"];
-    const hasURL = ["link", "button"];
-
     if (!node.ignored && node.role && node.role.value) {
         if (hasURL.includes(node.role.value)) {
             let href = await node.element.evaluate((el: Element) => el.getAttribute('href'));
 
             if (href && includeURLs) {
-                href = href.replace("https://www.", "");
-                href = href.replace("http://www.", "");
-                href = href.replace("https://", "");
-                href = href.replace("http://", "");
+                href = href.replace("https://www.", "").replace("http://www.", "").replace("https://", "").replace("http://", "");
 
-                if (href.length > 40) {
-                    href = `${href.substring(0, 40)}...`;
+                if (href.length > URL_TRUNCATION_LENGTH) {
+                    href = `${href.substring(0, URL_TRUNCATION_LENGTH)}`;
+                    if(href[href.length-1] != "/") {
+                        href += "/";
+                    }
                 }
 
                 fullTextArray.push(`{${node.role.value}: ${node.name.value}}(${href})`);
@@ -440,4 +452,4 @@ async function getTreeText(node: any, level: number, includeURLs: boolean): Prom
     return fullTextArray;
 }
 
-export { clickElement, keyboardPress, keyboardType, selectAll, getAriaElementsText, clickClosestAriaName }; // clickExactAriaName, getAriaElement,
+export { clickElement, keyboardPress, keyboardType, selectAll, getAriaElementsText, clickClosestAriaName, getPageLinks };
