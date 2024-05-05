@@ -42,6 +42,7 @@
     "moment-timezone": "^0.5.45",
     "openai": "^4.29.2",
     "puppeteer": "^22.6.0",
+    "puppeteer-core": "^22.7.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-adblocker": "^2.13.6",
     "puppeteer-extra-plugin-portal": "^3.2.1",
