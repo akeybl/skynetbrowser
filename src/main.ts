@@ -139,7 +139,7 @@ async function main() {
 
     const pageName = "test";
 
-    const browserPage = await createBrowserPage(app, mainWindow, puppeteer, pie, pageName, false, "Pixel 5", false, false);
+    const browserPage = await createBrowserPage(app, mainWindow, puppeteer, pie, pageName, false, "Pixel 5", true, false);
 
     console.log("Portal URL:", await browserPage.getPortalURL());
 
