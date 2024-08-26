@@ -1,6 +1,6 @@
 **Sky Netbrowser** is a cross-platform desktop app that gives high-functioning LLMs (GPT 4, Claude 3 Opus, Llama 3 70B) access to a mobile browser and any services you authenticate within it. It can accomplish helpful tasks on your behalf, even when you're not around (see Example Use Cases below). It may also be able to take over the world if given enough access.
 
-I have decided to open source Sky Netbrowser as I believe it is important for the community to trust anything we allow to perform tasks on our behalf. Please consider joining our [**Discord**](link_needed) to provide feedback or contribute. Or tweet/DM me [@alexkeybl](https://www.x.com/alexkeybl/).
+I have decided to open source Sky Netbrowser as I believe it is important to trust anything we allow to perform tasks on our behalf. Feel free to tweet/DM me [@alexkeybl](https://www.x.com/alexkeybl/).
 
 <br><p align="center"><img src="https://raw.githubusercontent.com/akeybl/skynetbrowser.com/main/demo_trimmed_optimized.gif" width="550"></p><br>
 
@@ -32,7 +32,7 @@ I have decided to open source Sky Netbrowser as I believe it is important for th
 * Anything found on the page (including text found on authenticated pages) is sent to AI for analysis and action
 * Whatever you do/enter when performing a browser intervention is **NOT** sent to AI
 
-## Planned Work
+## Potential Future Work
 * Multiple Threads and Session Restore
 * Cost safeguards
 * iPhone & Android mobile app support, with a streaming web view for user observation and intervention
@@ -50,5 +50,5 @@ If you'd like to use an OpenRouter model, just change `SMART_MODEL` to the full 
 2) `npm run make`
 
 ## System Prompts
-* [Main system prompt](src/chain-messages.ts#L293) - planning, navigation, interaction, function calls
-* [Find in page system prompt](src/actions.ts#L278) - sub-agent when trying to find lines in the page relevant to next steps of the main system prompt
+* [Main system prompt](src/chain-messages.ts#L321) - planning, navigation, interaction, function calls
+* [Find in page system prompt](src/actions.ts#L279) - sub-agent when trying to find lines in the page relevant to next steps of the main system prompt
